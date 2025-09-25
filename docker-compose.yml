@@ -1,0 +1,33 @@
+services:
+  milvus:
+    image: milvusdb/milvus:v2.4.7-standalone
+    container_name: milvus-standalone
+    environment:
+      - MILVUS_LOG_LEVEL=info
+    ports:
+      - "19530:19530"   # gRPC
+      - "9091:9091"     # HTTP REST
+    volumes:
+      - milvus_data:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  neo4j:
+    image: neo4j:5
+    container_name: neo4j
+    environment:
+      - NEO4J_AUTH=neo4j/changeme
+      - NEO4J_server_memory_heap_initial__size=512m
+      - NEO4J_server_memory_heap_max__size=1024m
+    ports:
+      - "7474:7474"   # HTTP
+      - "7687:7687"   # Bolt
+    volumes:
+      - neo4j_data:/data
+
+volumes:
+  milvus_data:
+  neo4j_data:

@@ -1,0 +1,23 @@
+# langgraph removed (LlamaIndex is default). Keep langchain-core optional if needed elsewhere.
+# langgraph>=0.2.20
+langchain-core>=0.2.0
+pydantic>=2.5.0
+python-dotenv>=1.0.1
+neo4j>=5.20.0
+structlog>=24.1.0
+typer>=0.12.3
+rich>=13.7.1
+tenacity>=8.2.3
+sqlglot>=25.13.0
+SQLAlchemy>=2.0.30
+PyMySQL>=1.1.0
+psycopg2-binary>=2.9.9
+clickhouse-driver>=0.2.6
+openai>=1.40.0
+fastembed>=0.3.4
+hnswlib>=0.8.0
+python-dateutil>=2.8.2
+llama-index>=0.10.0
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pymilvus>=2.4.0

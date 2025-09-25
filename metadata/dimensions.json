@@ -1,0 +1,186 @@
+[
+  {
+    "id": "dim_channel",
+    "canonical_name": "渠道",
+    "aliases": ["channel", "channel_code", "推广渠道", "来源渠道", "营销渠道", "投放渠道", "获客渠道"],
+    "type": "dimension",
+    "what": {"description": "用户来源渠道(自然/商店/广告/社媒/联盟等)，常用于渠道对比、投放归因、获客分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_channel", "column": "channel_code"}}
+  },
+  {
+    "id": "dim_user_level",
+    "canonical_name": "用户等级",
+    "aliases": ["user_level", "level", "等级", "会员等级", "分层", "人群层级"],
+    "type": "dimension",
+    "what": {"description": "基于价值/活跃/贡献度的人群分层(如 新客/活跃/核心/流失预警)，用于分层运营与对比分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_user_level", "column": "user_level"}}
+  },
+  {
+    "id": "dim_region",
+    "canonical_name": "地区",
+    "aliases": ["region", "国家", "省份", "城市", "地域", "区域"],
+    "type": "dimension",
+    "what": {"description": "用户地域划分(国家/省份/城市等)，用于地域分布、分市场对比与本地化策略评估。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_region", "column": "region"}}
+  },
+  {
+    "id": "dim_device",
+    "canonical_name": "设备类型",
+    "aliases": ["device", "device_type", "设备", "终端", "平台", "系统"],
+    "type": "dimension",
+    "what": {"description": "设备/平台类型(如 iOS/Android/Web/小程序)，用于终端分布、兼容性与体验差异分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_device", "column": "device"}}
+  },
+  {
+    "id": "dim_app_version",
+    "canonical_name": "应用版本",
+    "aliases": ["app_version", "版本", "客户端版本", "版本号"],
+    "type": "dimension",
+    "what": {"description": "客户端版本号(如 1.2.3)，用于版本灰度/升级前后对比与质量监控。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_app_version", "column": "app_version"}}
+  },
+  {
+    "id": "dim_campaign",
+    "canonical_name": "投放活动",
+    "aliases": ["campaign", "活动", "广告活动", "广告系列", "投放计划"],
+    "type": "dimension",
+    "what": {"description": "营销/投放活动标识(如活动名称/计划ID)，用于投放效果分析、ROI 与转化归因。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_campaign", "column": "campaign"}}
+  },
+  {
+    "id": "dim_device_model",
+    "canonical_name": "设备型号",
+    "aliases": ["device_model", "设备型号", "手机型号", "终端型号", "硬件型号"],
+    "type": "dimension",
+    "what": {"description": "具体设备型号(如iPhone 14 Pro、Samsung Galaxy S23)，用于设备性能分析、兼容性测试。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_device_model", "column": "device_model"}}
+  },
+  {
+    "id": "dim_os_version",
+    "canonical_name": "操作系统版本",
+    "aliases": ["os_version", "系统版本", "OS版本", "操作系统", "系统"],
+    "type": "dimension",
+    "what": {"description": "操作系统版本(如iOS 16.1、Android 13)，用于系统兼容性分析和版本升级影响评估。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_os_version", "column": "os_version"}}
+  },
+  {
+    "id": "dim_country",
+    "canonical_name": "国家",
+    "aliases": ["country", "国家", "国别", "国家地区"],
+    "type": "dimension",
+    "what": {"description": "用户所在国家(如中国、美国、日本)，用于国际化分析和地域策略制定。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_country", "column": "country"}}
+  },
+  {
+    "id": "dim_city",
+    "canonical_name": "城市",
+    "aliases": ["city", "城市", "都市", "城镇"],
+    "type": "dimension",
+    "what": {"description": "用户所在城市(如北京、上海、深圳)，用于城市级别的地域分析和本地化运营。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_city", "column": "city"}}
+  },
+  {
+    "id": "dim_network_type",
+    "canonical_name": "网络类型",
+    "aliases": ["network_type", "网络类型", "网络环境", "连接类型"],
+    "type": "dimension",
+    "what": {"description": "用户网络连接类型(如WiFi、4G、5G)，用于网络环境分析和性能优化。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_network_type", "column": "network_type"}}
+  },
+  {
+    "id": "dim_channel_subtype",
+    "canonical_name": "渠道子类型",
+    "aliases": ["channel_subtype", "渠道子类型", "细分渠道", "渠道分类"],
+    "type": "dimension",
+    "what": {"description": "渠道的细分类型(如自然流量、付费广告、社交媒体)，用于精细化渠道分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_channel_subtype", "column": "channel_subtype"}}
+  },
+  {
+    "id": "dim_ab_bucket",
+    "canonical_name": "AB测试分组",
+    "aliases": ["ab_bucket", "AB测试", "实验分组", "测试组", "分组"],
+    "type": "dimension",
+    "what": {"description": "AB测试实验分组(如A组、B组、对照组)，用于实验效果分析和功能验证。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_ab_bucket", "column": "ab_bucket"}}
+  },
+  {
+    "id": "dim_user_segment",
+    "canonical_name": "用户分群",
+    "aliases": ["user_segment", "用户分群", "用户群体", "用户标签", "分群"],
+    "type": "dimension",
+    "what": {"description": "基于行为/特征的用户分群(如高价值用户、新用户、流失用户)，用于精准营销和个性化运营。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_user_segment", "column": "user_segment"}}
+  },
+  {
+    "id": "dim_product_category",
+    "canonical_name": "产品类别",
+    "aliases": ["product_category", "产品类别", "商品类别", "品类", "产品分类"],
+    "type": "dimension",
+    "what": {"description": "产品/商品的分类(如电子产品、服装、食品)，用于产品分析和销售策略制定。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_product_category", "column": "product_category"}}
+  },
+  {
+    "id": "dim_payment_method",
+    "canonical_name": "支付方式",
+    "aliases": ["payment_method", "支付方式", "付款方式", "支付渠道"],
+    "type": "dimension",
+    "what": {"description": "用户支付方式(如支付宝、微信支付、信用卡、现金)，用于支付分析和风控。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_payment_method", "column": "payment_method"}}
+  },
+  {
+    "id": "dim_user_age_group",
+    "canonical_name": "年龄组",
+    "aliases": ["user_age_group", "年龄组", "年龄段", "年龄分层"],
+    "type": "dimension",
+    "what": {"description": "用户年龄分组(如18-25岁、26-35岁、36-45岁)，用于用户画像和精准营销。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_user_age_group", "column": "user_age_group"}}
+  },
+  {
+    "id": "dim_user_gender",
+    "canonical_name": "性别",
+    "aliases": ["user_gender", "性别", "用户性别"],
+    "type": "dimension",
+    "what": {"description": "用户性别(男、女、其他)，用于性别分析和产品推荐。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_user_gender", "column": "user_gender"}}
+  },
+  {
+    "id": "dim_order_status",
+    "canonical_name": "订单状态",
+    "aliases": ["order_status", "订单状态", "交易状态", "支付状态"],
+    "type": "dimension",
+    "what": {"description": "订单状态(如待支付、已支付、已发货、已完成、已取消)，用于订单流程分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_order_status", "column": "order_status"}}
+  },
+  {
+    "id": "dim_delivery_method",
+    "canonical_name": "配送方式",
+    "aliases": ["delivery_method", "配送方式", "物流方式", "发货方式"],
+    "type": "dimension",
+    "what": {"description": "商品配送方式(如快递、自提、同城配送)，用于物流分析和成本优化。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_delivery_method", "column": "delivery_method"}}
+  },
+  {
+    "id": "dim_marketing_source",
+    "canonical_name": "营销来源",
+    "aliases": ["marketing_source", "营销来源", "推广来源", "获客来源"],
+    "type": "dimension",
+    "what": {"description": "营销活动来源(如邮件营销、短信营销、APP推送、线下活动)，用于营销效果分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_marketing_source", "column": "marketing_source"}}
+  },
+  {
+    "id": "dim_user_vip_level",
+    "canonical_name": "VIP等级",
+    "aliases": ["user_vip_level", "VIP等级", "会员等级", "用户等级"],
+    "type": "dimension",
+    "what": {"description": "用户VIP等级(如普通会员、银牌会员、金牌会员、钻石会员)，用于会员权益分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_user_vip_level", "column": "user_vip_level"}}
+  },
+  {
+    "id": "dim_time_period",
+    "canonical_name": "时段",
+    "aliases": ["time_period", "时段", "时间段", "时间分组"],
+    "type": "dimension",
+    "what": {"description": "访问时段(如早高峰、午休、晚高峰、深夜)，用于用户行为分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_time_period", "column": "time_period"}}
+  }
+]

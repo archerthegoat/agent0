@@ -1,0 +1,25 @@
+﻿# env & secrets
+.env
+.env.local
+*.key
+*.pem
+
+# venv / caches
+.venv/
+__pycache__/
+*.pyc
+
+# logs
+logs/
+*.log
+
+# local data/indexes
+vector_index/
+kb_vector_index/
+metric_index/
+datainsight.db
+kb_graph.sqlite
+
+# OS/editor
+.DS_Store
+Thumbs.db

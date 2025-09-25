@@ -1,0 +1,518 @@
+[
+  {
+    "id": "metric_mau",
+    "canonical_name": "用户月活跃度",
+    "aliases": [
+      "MAU",
+      "月活",
+      "活跃用户",
+      "活跃用户数",
+      "active_users",
+      "monthly_active_users"
+    ],
+    "type": "metric",
+    "aggregation": {
+      "function": "COUNT",
+      "field": "DISTINCT user_id",
+      "alias": "mau"
+    },
+    "filters": [
+      {
+        "field": "active",
+        "operator": "=",
+        "value": "1"
+      }
+    ]
+  },
+  {
+    "id": "metric_uv",
+    "canonical_name": "独立访客",
+    "aliases": [
+      "UV",
+      "独立用户",
+      "独立用户数",
+      "unique visitors",
+      "unique_users",
+      "users",
+      "用户数"
+    ],
+    "type": "metric",
+    "aggregation": {
+      "function": "COUNT",
+      "field": "DISTINCT user_id",
+      "alias": "uv"
+    },
+    "filters": []
+  },
+  {
+    "id": "metric_pv",
+    "canonical_name": "浏览量",
+    "aliases": [
+      "PV",
+      "页面浏览",
+      "page views",
+      "pageviews",
+      "浏览次数",
+      "访问量"
+    ],
+    "aggregation": {
+      "function": "COUNT",
+      "field": "page_view_id",
+      "alias": "pv"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_active_uv",
+    "canonical_name": "活跃独立访客",
+    "aliases": [
+      "活跃UV",
+      "active_uv",
+      "活跃独立用户"
+    ],
+    "aggregation": {
+      "function": "COUNT",
+      "field": "DISTINCT user_id",
+      "alias": "active_uv"
+    },
+    "filters": [
+      {
+        "field": "active",
+        "operator": "=",
+        "value": "1"
+      }
+    ],
+    "type": "metric"
+  },
+  {
+    "id": "metric_active_pv",
+    "canonical_name": "活跃用户浏览量",
+    "aliases": [
+      "活跃PV",
+      "active_pv"
+    ],
+    "aggregation": {
+      "function": "COUNT",
+      "field": "page_view_id",
+      "alias": "active_pv"
+    },
+    "filters": [
+      {
+        "field": "active",
+        "operator": "=",
+        "value": "1"
+      }
+    ],
+    "type": "metric"
+  },
+  {
+    "id": "metric_retention_rate",
+    "canonical_name": "用户留存率",
+    "aliases": [
+      "留存率",
+      "retention_rate",
+      "用户留存",
+      "留存"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "retention_flag",
+      "alias": "retention_rate"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_conversion_rate",
+    "canonical_name": "转化率",
+    "aliases": [
+      "转化率",
+      "conversion_rate",
+      "转化",
+      "转化率"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "conversion_flag",
+      "alias": "conversion_rate"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_session_duration",
+    "canonical_name": "会话时长",
+    "aliases": [
+      "会话时长",
+      "session_duration",
+      "停留时长",
+      "使用时长"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "session_duration_minutes",
+      "alias": "avg_session_duration"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_bounce_rate",
+    "canonical_name": "跳出率",
+    "aliases": [
+      "跳出率",
+      "bounce_rate",
+      "跳出",
+      "单页访问率"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "bounce_flag",
+      "alias": "bounce_rate"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_revenue",
+    "canonical_name": "收入",
+    "aliases": [
+      "收入",
+      "revenue",
+      "营收",
+      "GMV",
+      "交易额"
+    ],
+    "aggregation": {
+      "function": "SUM",
+      "field": "revenue_amount",
+      "alias": "total_revenue"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_orders",
+    "canonical_name": "订单数",
+    "aliases": [
+      "订单数",
+      "orders",
+      "订单",
+      "交易数"
+    ],
+    "aggregation": {
+      "function": "COUNT",
+      "field": "DISTINCT order_id",
+      "alias": "order_count"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_new_users",
+    "canonical_name": "新用户数",
+    "aliases": [
+      "新用户数",
+      "new_users",
+      "新用户",
+      "新增用户"
+    ],
+    "aggregation": {
+      "function": "COUNT",
+      "field": "DISTINCT user_id",
+      "alias": "new_users"
+    },
+    "filters": [
+      {
+        "field": "is_new_user",
+        "operator": "=",
+        "value": "1"
+      }
+    ],
+    "type": "metric"
+  },
+  {
+    "id": "metric_churn_users",
+    "canonical_name": "流失用户数",
+    "aliases": [
+      "流失用户数",
+      "churn_users",
+      "流失用户",
+      "流失"
+    ],
+    "aggregation": {
+      "function": "COUNT",
+      "field": "DISTINCT user_id",
+      "alias": "churn_users"
+    },
+    "filters": [
+      {
+        "field": "is_churn",
+        "operator": "=",
+        "value": "1"
+      }
+    ],
+    "type": "metric"
+  },
+  {
+    "id": "metric_arpu",
+    "canonical_name": "ARPU",
+    "aliases": [
+      "ARPU",
+      "arpu",
+      "人均收入",
+      "用户平均收入"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "user_revenue",
+      "alias": "arpu"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_gmv",
+    "canonical_name": "GMV",
+    "aliases": [
+      "GMV",
+      "gmv",
+      "成交总额",
+      "交易总额",
+      "商品交易总额"
+    ],
+    "aggregation": {
+      "function": "SUM",
+      "field": "order_amount",
+      "alias": "gmv"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_aov",
+    "canonical_name": "AOV",
+    "aliases": [
+      "AOV",
+      "aov",
+      "客单价",
+      "平均订单价值",
+      "订单均价"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "order_amount",
+      "alias": "aov"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_customer_lifetime_value",
+    "canonical_name": "CLV",
+    "aliases": [
+      "CLV",
+      "clv",
+      "客户生命周期价值",
+      "用户生命周期价值",
+      "LTV"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "customer_lifetime_value",
+      "alias": "clv"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_customer_acquisition_cost",
+    "canonical_name": "CAC",
+    "aliases": [
+      "CAC",
+      "cac",
+      "客户获取成本",
+      "获客成本",
+      "用户获取成本"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "acquisition_cost",
+      "alias": "cac"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_roi",
+    "canonical_name": "ROI",
+    "aliases": [
+      "ROI",
+      "roi",
+      "投资回报率",
+      "投入产出比"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "roi_ratio",
+      "alias": "roi"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_page_views_per_session",
+    "canonical_name": "页面浏览数/会话",
+    "aliases": [
+      "页面浏览数/会话",
+      "pages_per_session",
+      "每会话页面数",
+      "页面深度"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "pages_per_session",
+      "alias": "pages_per_session"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_return_visitor_rate",
+    "canonical_name": "回访率",
+    "aliases": [
+      "回访率",
+      "return_visitor_rate",
+      "回头客率",
+      "复购率"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "is_return_visitor",
+      "alias": "return_visitor_rate"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_cart_abandonment_rate",
+    "canonical_name": "购物车放弃率",
+    "aliases": [
+      "购物车放弃率",
+      "cart_abandonment_rate",
+      "加购放弃率",
+      "购物车流失率"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "cart_abandoned",
+      "alias": "cart_abandonment_rate"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_search_success_rate",
+    "canonical_name": "搜索成功率",
+    "aliases": [
+      "搜索成功率",
+      "search_success_rate",
+      "搜索转化率",
+      "搜索命中率"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "search_success",
+      "alias": "search_success_rate"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_recommendation_click_rate",
+    "canonical_name": "推荐点击率",
+    "aliases": [
+      "推荐点击率",
+      "recommendation_ctr",
+      "推荐CTR",
+      "推荐转化率"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "recommendation_clicked",
+      "alias": "recommendation_ctr"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_customer_satisfaction",
+    "canonical_name": "客户满意度",
+    "aliases": [
+      "客户满意度",
+      "customer_satisfaction",
+      "用户满意度",
+      "满意度评分"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "satisfaction_score",
+      "alias": "customer_satisfaction"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_net_promoter_score",
+    "canonical_name": "NPS",
+    "aliases": [
+      "NPS",
+      "nps",
+      "净推荐值",
+      "净推荐度",
+      "推荐意愿"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "nps_score",
+      "alias": "nps"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_support_ticket_count",
+    "canonical_name": "客服工单数",
+    "aliases": [
+      "客服工单数",
+      "support_tickets",
+      "客服咨询数",
+      "工单数量"
+    ],
+    "aggregation": {
+      "function": "COUNT",
+      "field": "ticket_id",
+      "alias": "support_tickets"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_average_resolution_time",
+    "canonical_name": "平均解决时间",
+    "aliases": [
+      "平均解决时间",
+      "avg_resolution_time",
+      "客服响应时间",
+      "问题解决时长"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "resolution_hours",
+      "alias": "avg_resolution_time"
+    },
+    "filters": [],
+    "type": "metric"
+  }
+]
