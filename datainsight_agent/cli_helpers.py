@@ -531,7 +531,7 @@ def print_task_results(res_map: Dict[str, Dict[str, Any]], metric_a: str, metric
 
 def perform_q2q_rewrite(question: str, top_k: int, settings: Any, show_prompt: bool = True) -> tuple[dict | None, str | None]:
 	"""Perform Q2Q rewrite using RAG context."""
-	from datainsight_agent.components.query_rewriter import QueryRewriter
+	from datainsight_agent.services.core.query_rewriter import OptimizedQ2QRewriter as QueryRewriter
 	from datainsight_agent.services.llm import QwenClient
 	from datainsight_agent.services.prompts import q2q_prompt
 	import json as _json

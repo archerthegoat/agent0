@@ -52,7 +52,7 @@ class OptimizedQ2QRewriter:
         self._client = None
         
         # 智能Context管理器
-        from datainsight_agent.services.context_manager import StageAwareContextManager
+        from datainsight_agent.services.utils.context_manager import StageAwareContextManager
         self._context_manager = StageAwareContextManager()
         
         # 查询类型检测器缓存

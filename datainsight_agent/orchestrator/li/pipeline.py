@@ -844,7 +844,7 @@ class LIPipeline:
 	def _get_q2q_rewriter(self):
 		"""获取缓存的Q2Q重写器实例"""
 		if self._q2q_rewriter is None:
-			from datainsight_agent.services.q2q import Q2QRewriter
+			from datainsight_agent.services.q2q_optimized import OptimizedQ2QRewriter as Q2QRewriter
 			self._q2q_rewriter = Q2QRewriter()
 		return self._q2q_rewriter
 	
