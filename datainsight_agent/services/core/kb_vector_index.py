@@ -12,8 +12,8 @@ try:
     from datainsight_agent.clients.vector_store import MilvusVectorStore
 except Exception:
     MilvusVectorStore = None
-from datainsight_agent.services.metric_registry import MetricRegistry
-from datainsight_agent.services.auth import KnowledgeBaseAuth
+from datainsight_agent.services.registry.metric_registry import MetricRegistry
+from datainsight_agent.services.utils.auth import KnowledgeBaseAuth
 
 
 @dataclass
@@ -348,13 +348,17 @@ class KBVectorRetriever:
             
             return topics_and_metrics
         except Exception as e:
-            print(f"[ERROR] 第一阶段向量检索失败: {e}")
+            # 避免编码问题，使用安全的错误处理
+            try:
+                print(f"[ERROR] 第一阶段向量检索失败: {str(e)}")
+            except UnicodeError:
+                print(f"[ERROR] 第一阶段向量检索失败: encoding error")
             return []
     
     def _exact_metric_match(self, query: str) -> List[Dict[str, Any]]:
         """精确匹配指标"""
         try:
-            from datainsight_agent.services.metric_registry import MetricRegistry
+            from datainsight_agent.services.registry.metric_registry import MetricRegistry
             
             registry = MetricRegistry()
             registry.load()
@@ -382,35 +386,60 @@ class KBVectorRetriever:
             
             return exact_matches
         except Exception as e:
-            print(f"[ERROR] 精确匹配失败: {e}")
+            # 避免编码问题，使用安全的错误处理
+            try:
+                print(f"[ERROR] 精确匹配失败: {str(e)}")
+            except UnicodeError:
+                print(f"[ERROR] 精确匹配失败: encoding error")
             return []
     
     def _extract_metric_keywords(self, query: str) -> List[str]:
         """从查询中提取指标关键词，使用METRIC_KEYWORDS映射"""
-        keywords = []
-        query_lower = query.lower()
-        
-        # 使用METRIC_KEYWORDS映射而不是硬编码
-        from datainsight_agent.config.keyword_mappings import METRIC_KEYWORDS
-        
-        # 1. 遍历METRIC_KEYWORDS，查找匹配的关键词
-        for keyword, metric_alias in METRIC_KEYWORDS.items():
-            if keyword in query or keyword.lower() in query_lower:
-                keywords.append(keyword)
-                keywords.append(metric_alias)  # 同时添加标准别名
-        
-        # 2. 英文缩写匹配
-        import re
-        abbreviations = re.findall(r'\b[A-Z]{2,4}\b', query)
-        keywords.extend(abbreviations)
-        
-        # 3. 英文全称匹配
-        english_metrics = ['monthly active users', 'daily active users', 'unique visitors', 'page views']
-        for metric in english_metrics:
-            if metric in query_lower:
-                keywords.append(metric)
-        
-        return list(set(keywords))  # 去重
+        try:
+            keywords = []
+            query_lower = query.lower()
+            
+            # 使用METRIC_KEYWORDS映射而不是硬编码
+            from datainsight_agent.config.keyword_mappings import METRIC_KEYWORDS
+            
+            # 1. 遍历METRIC_KEYWORDS，查找匹配的关键词
+            for keyword, metric_alias in METRIC_KEYWORDS.items():
+                try:
+                    if keyword in query or keyword.lower() in query_lower:
+                        keywords.append(keyword)
+                        keywords.append(metric_alias)  # 同时添加标准别名
+                except UnicodeError:
+                    # 跳过有编码问题的关键词
+                    continue
+            
+            # 2. 英文缩写匹配
+            import re
+            try:
+                abbreviations = re.findall(r'\b[A-Z]{2,4}\b', query)
+                keywords.extend(abbreviations)
+            except UnicodeError:
+                # 跳过有编码问题的正则匹配
+                pass
+            
+            # 3. 英文全称匹配
+            english_metrics = ['monthly active users', 'daily active users', 'unique visitors', 'page views']
+            for metric in english_metrics:
+                try:
+                    if metric in query_lower:
+                        keywords.append(metric)
+                except UnicodeError:
+                    # 跳过有编码问题的匹配
+                    continue
+            
+            # 安全去重，避免编码问题
+            try:
+                return list(set(keywords))  # 去重
+            except UnicodeError:
+                # 如果去重失败，返回原始列表
+                return keywords
+        except Exception:
+            # 如果整个方法失败，返回空列表
+            return []
     
     def _standardize_metric_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
         """标准化指标元数据，将alias映射到标准指标名称"""
@@ -419,7 +448,7 @@ class KBVectorRetriever:
             
             if entity_type == 'metric':
                 # 使用MetricRegistry进行标准化
-                from datainsight_agent.services.metric_registry import MetricRegistry
+                from datainsight_agent.services.registry.metric_registry import MetricRegistry
                 
                 registry = MetricRegistry()
                 registry.load()  # 确保加载指标定义
@@ -449,7 +478,11 @@ class KBVectorRetriever:
             
             return metadata
         except Exception as e:
-            print(f"[ERROR] 标准化指标元数据失败: {e}")
+            # 避免编码问题，使用安全的错误处理
+            try:
+                print(f"[ERROR] 标准化指标元数据失败: {str(e)}")
+            except UnicodeError:
+                print(f"[ERROR] 标准化指标元数据失败: encoding error")
             return metadata
     
     def _get_entity_metadata(self, entity_id: str) -> Dict[str, Any] | None:
@@ -541,7 +574,11 @@ class KBVectorRetriever:
                 "entity_type": "unknown"
             }
         except Exception as e:
-            print(f"[ERROR] 获取实体元数据失败: {e}")
+            # 避免编码问题，使用安全的错误处理
+            try:
+                print(f"[ERROR] 获取实体元数据失败: {str(e)}")
+            except UnicodeError:
+                print(f"[ERROR] 获取实体元数据失败: encoding error")
             return {
                 "entity_id": entity_id,
                 "entity_type": "unknown"

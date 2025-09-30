@@ -5,6 +5,8 @@
     "aliases": [
       "MAU",
       "月活",
+      "月活跃用户",
+      "月活跃用户数",
       "活跃用户",
       "活跃用户数",
       "active_users",
@@ -13,8 +15,42 @@
     "type": "metric",
     "aggregation": {
       "function": "COUNT",
-      "field": "DISTINCT user_id",
+      "field": "user_id",
       "alias": "mau"
+    },
+    "table_mapping": {
+      "table_name": "dws_user_activity",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
+    },
+    "filters": [
+      {
+        "field": "active",
+        "operator": "=",
+        "value": "1"
+      }
+    ]
+  },
+  {
+    "id": "metric_dau",
+    "canonical_name": "用户日活跃度",
+    "aliases": [
+      "DAU",
+      "日活",
+      "日活跃用户",
+      "日活跃用户数",
+      "daily_active_users"
+    ],
+    "type": "metric",
+    "aggregation": {
+      "function": "COUNT",
+      "field": "DISTINCT user_id",
+      "alias": "dau"
+    },
+    "table_mapping": {
+      "table_name": "dws_user_activity",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
     },
     "filters": [
       {
@@ -42,6 +78,11 @@
       "field": "DISTINCT user_id",
       "alias": "uv"
     },
+    "table_mapping": {
+      "table_name": "dws_user_activity",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
+    },
     "filters": []
   },
   {
@@ -60,6 +101,11 @@
       "field": "page_view_id",
       "alias": "pv"
     },
+    "table_mapping": {
+      "table_name": "dws_user_activity",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
+    },
     "filters": [],
     "type": "metric"
   },
@@ -75,6 +121,11 @@
       "function": "COUNT",
       "field": "DISTINCT user_id",
       "alias": "active_uv"
+    },
+    "table_mapping": {
+      "table_name": "dws_user_activity",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
     },
     "filters": [
       {
@@ -96,6 +147,11 @@
       "function": "COUNT",
       "field": "page_view_id",
       "alias": "active_pv"
+    },
+    "table_mapping": {
+      "table_name": "dws_user_activity",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
     },
     "filters": [
       {

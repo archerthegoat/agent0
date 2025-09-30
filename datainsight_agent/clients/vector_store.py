@@ -131,45 +131,107 @@ class MilvusVectorStore:
         self._db = db
         self._coll_name = coll
 
-        # connect
+        # connect with db_name when possible; support both grpc address and http uri
         try:
             _milvus_conn.disconnect("default")
         except Exception:
             pass
-        _milvus_conn.connect(alias="default", uri=uri)
         try:
-            _mutil.create_database(db)
-        except Exception:
-            pass
+            # pymilvus accepts either address ("host:19530") or uri ("http://host:19531")
+            conn_base: dict = {}
+            if uri.startswith("http://") or uri.startswith("https://"):
+                conn_base["uri"] = uri
+            else:
+                conn_base["address"] = uri
+            user = getattr(s, "milvus_user", None) or ""
+            password = getattr(s, "milvus_password", None) or ""
+            if user or password:
+                conn_base["user"] = user
+                conn_base["password"] = password
 
-        # schema
+            # First try connect with db_name
+            try:
+                _milvus_conn.connect(alias="default", db_name=db, **conn_base)
+            except Exception as e1:
+                msg = str(e1)
+                # If database not found, connect to default, create it, then reconnect
+                if "database not found" in msg or "database=" in msg:
+                    try:
+                        try:
+                            _milvus_conn.disconnect("default")
+                        except Exception:
+                            pass
+                        _milvus_conn.connect(alias="default", **conn_base)
+                        try:
+                            _mutil.create_database(db)
+                        except Exception:
+                            # If database creation unsupported, fall back to default DB
+                            pass
+                        try:
+                            _milvus_conn.disconnect("default")
+                        except Exception:
+                            pass
+                        # Try target DB again; if still failing, fall back to default DB without db_name
+                        try:
+                            _milvus_conn.connect(alias="default", db_name=db, **conn_base)
+                        except Exception:
+                            _milvus_conn.connect(alias="default", **conn_base)
+                    except Exception as e2:
+                        raise RuntimeError(f"Milvus connect/create database failed: {e2}")
+                else:
+                    raise RuntimeError(f"Milvus connect failed: {e1}")
+        except Exception as e:
+            raise RuntimeError(f"Milvus connect failed: {e}")
+
+        # schema with metadata fields
         fs = [
             _Field(name="id", dtype=_DT.VARCHAR, max_length=128, is_primary=True, auto_id=False),
             _Field(name="vector", dtype=_DT.FLOAT_VECTOR, dim=self._dim),
+            _Field(name="canonical_name", dtype=_DT.VARCHAR, max_length=256),
+            _Field(name="aliases", dtype=_DT.VARCHAR, max_length=1024),
+            _Field(name="type", dtype=_DT.VARCHAR, max_length=64),
         ]
         schema = _Schema(fields=fs, description="kb vectors")
         index_params = {"index_type": "HNSW", "metric_type": self._metric, "params": {"M": 16, "efConstruction": 200}}
 
-        # create collection if not exists
-        fullname = f"{db}.{coll}" if hasattr(_mutil, "has_collection") else coll
+        # create or get collection using ORM; do not swallow schema-missing errors
         try:
-            _mutil.create_collection(coll, schema=schema, using="default", shards_num=2)
-        except Exception:
-            pass
-        self._c = _Collection(coll)
+            if hasattr(_mutil, "has_collection") and _mutil.has_collection(coll, using="default"):
+                self._c = _Collection(coll)
+            else:
+                self._c = _Collection(name=coll, schema=schema, using="default")
+        except Exception as e:
+            raise RuntimeError(f"Milvus create/get collection failed: {e}")
+        # create index and load
         try:
             self._c.create_index(field_name="vector", index_params=index_params)
-        except Exception:
-            pass
+        except Exception as e:
+            raise RuntimeError(f"Milvus create index failed: {e}")
         try:
             self._c.load()
-        except Exception:
-            pass
+        except Exception as e:
+            raise RuntimeError(f"Milvus load collection failed: {e}")
 
     def add(self, ids: list[str], vectors: list[list[float]], metadatas: list[dict] | None = None) -> None:
         if not ids:
             return
-        data = [ids, vectors]
+        
+        # 处理元数据
+        canonical_names = []
+        aliases_list = []
+        types = []
+        
+        if metadatas:
+            for meta in metadatas:
+                canonical_names.append(meta.get("canonical_name", ""))
+                aliases_list.append("|".join(meta.get("aliases", [])))
+                types.append(meta.get("type", ""))
+        else:
+            canonical_names = [""] * len(ids)
+            aliases_list = [""] * len(ids)
+            types = [""] * len(ids)
+        
+        data = [ids, vectors, canonical_names, aliases_list, types]
         self._c.insert(data)
         self._c.flush()
 
@@ -177,7 +239,11 @@ class MilvusVectorStore:
         if not query_vectors:
             return [[]]
         params = {"metric_type": self._metric, "params": {"ef": 64}}
-        res = self._c.search(query_vectors, anns_field="vector", param=params, limit=top_k, output_fields=["id"])
+        
+        # 获取所有字段名（除了 vector）
+        output_fields = ["id", "canonical_name", "aliases", "type"]
+        
+        res = self._c.search(query_vectors, anns_field="vector", param=params, limit=top_k, output_fields=output_fields)
         out: list[list[tuple[str, float]]] = []
         for hits in res:
             pairs: list[tuple[str, float]] = []
@@ -185,6 +251,21 @@ class MilvusVectorStore:
                 pairs.append((str(h.entity.get("id")), float(h.distance)))
             out.append(pairs)
         return out
+
+    def get_metadata(self, entity_id: str) -> dict | None:
+        """Get metadata for a specific entity by ID."""
+        try:
+            # 使用 query 方法获取特定 ID 的元数据
+            res = self._c.query(
+                expr=f'id == "{entity_id}"',
+                output_fields=["id", "canonical_name", "aliases", "type"]
+            )
+            if res and len(res) > 0:
+                return res[0]
+        except Exception:
+            pass
+        return None
+
 
 class EmbeddingModel:
 	# 类级缓存，避免重复初始化

@@ -25,25 +25,38 @@ DIMENSION_KEYWORDS: Dict[str, str] = {
 
 # 度量关键词映射
 METRIC_KEYWORDS: Dict[str, str] = {
+    # MAU相关
     "活跃度": "mau",
     "活跃用户": "mau", 
     "月活": "mau",
-    # 缩写直接识别（问题文本会lowercase）
-    "mau": "mau",
-    "uv": "uv",
-    "pv": "pv",
-    "dau": "dau",
-    "用户数": "uv",
+    "月活跃用户": "mau",
+    "月活跃用户数": "mau",
+    "活跃用户数": "mau",
+    
+    # DAU相关  
+    "日活": "dau",
+    "日活跃用户": "dau",
+    "日活跃用户数": "dau",
+    
+    # UV相关
+    "独立访客": "uv",
     "独立用户": "uv",
+    "独立用户数": "uv",
+    
+    # PV相关
     "浏览量": "pv",
     "访问量": "pv",
+    
+    # GMV相关
     "成交总额": "gmv",
-    "gmv": "gmv",
     "交易总额": "gmv",
+    
+    # AOV相关
     "客单价": "aov",
-    "aov": "aov",
     "平均订单": "aov",
     "订单价值": "aov",
+    
+    # 其他
     "收入": "revenue",
     "营收": "revenue",
     "订单数": "orders",
@@ -51,7 +64,15 @@ METRIC_KEYWORDS: Dict[str, str] = {
     "留存率": "retention_rate",
     "跳出率": "bounce_rate",
     "新用户": "new_users",
-    "流失用户": "churn_users"
+    "流失用户": "churn_users",
+    
+    # 缩写直接识别（问题文本会lowercase）
+    "mau": "mau",
+    "uv": "uv",
+    "pv": "pv",
+    "dau": "dau",
+    "gmv": "gmv",
+    "aov": "aov"
 }
 
 # Q2Q智能跳过机制的关键词
@@ -100,5 +121,3 @@ AGGREGATION_MAPPING: Dict[str, Dict[str, str]] = {
 }
 
 # （已废弃）默认聚合与过滤常量不再使用，聚合/过滤由注册表提供
-
-

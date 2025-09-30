@@ -3,11 +3,11 @@
 English | 中文
 
 ## Overview
-DataInsight Agent is an enterprise-grade, natural-language-driven data agent. It turns business questions into precise SQL via a Text-to-IR-to-SQL pipeline, grounded on a hybrid knowledge base: a local HNSW vector store for semantic retrieval and a lightweight SQLite-based graph for structured knowledge. Orchestration is built with LlamaIndex (QueryPipeline + FnComponent). The agent includes an explicit IR (intermediate representation) layer and removes direct LLM SQL fallback for safety and transparency.
+DataInsight Agent is an enterprise-grade, natural-language-driven data agent. It turns business questions into precise SQL via a Text-to-IR-to-SQL pipeline, grounded on a hybrid knowledge base: a Milvus vector store for semantic retrieval and a lightweight SQLite-based graph for structured knowledge. Orchestration is built with LlamaIndex (QueryPipeline + FnComponent). The agent includes an explicit IR (intermediate representation) layer and removes direct LLM SQL fallback for safety and transparency.
 
 ## Features
 - Text-to-IR-to-SQL pipeline with safety-first generation (no direct LLM SQL fallback)
-- Hybrid Knowledge Base: Local HNSW vectors + SQLite graph
+- Hybrid Knowledge Base: Milvus vectors + SQLite graph
 - LlamaIndex-based orchestration with extensible components
 - Structured logging with file and console outputs
 - RAGFlow-style offline ETL wrapper for metadata ingestion
@@ -15,7 +15,7 @@ DataInsight Agent is an enterprise-grade, natural-language-driven data agent. It
 
 ## Tech Stack
 - Orchestration: LlamaIndex (default)
-- Knowledge: HNSW (hnswlib) + SQLite (local graph)
+- Knowledge: Milvus (HNSW) + SQLite (local graph)
 - Models: Pydantic v2 with type hints
 - Logging: structlog + stdlib logging
 - CLI: Typer
@@ -97,6 +97,66 @@ Environment variables are loaded via `python-dotenv`. For the complete list and 
       └─ ragflow_etl.py
 ```
 
+### Decoupled Architecture (目标解耦结构与用法)
+```text
+datainsight_agent/
+├─ core/                        # 核心接口与类型（稳定契约）
+│  ├─ interfaces.py             # Service 接口：QueryRewriter/TimeParser/…
+│  ├─ types.py                  # 通用类型：TimeFilter/QueryRewrite/…
+│  └─ exceptions.py             # 统一异常层次
+├─ components/                  # 组件层（桥接到现有 services，便于接入）
+│  ├─ query_rewriter/           # 查询重写组件（封装 Q2Q）
+│  └─ time_parser/              # 时间解析组件（复用标准化逻辑）
+├─ adapters/                    # 适配器层（DB/LLM/向量存储，可插拔）
+├─ config/
+│  ├─ settings.py               # 现有设置
+│  └─ manager.py                # 统一配置门面（向上提供稳定配置对象）
+├─ container/
+│  └─ service_container.py      # 轻量依赖注入容器（注册/解析服务）
+└─ services/                    # 现有实现（逐步迁移至组件）
+```
+
+示例：以解耦接口方式调用查询重写与时间解析
+```python
+from datainsight_agent.components.query_rewriter import QueryRewriter
+from datainsight_agent.components.time_parser import TimeParser
+
+rewriter = QueryRewriter()
+res = rewriter.rewrite("查询2025年8月的MAU")
+print(res.metric, res.time_filter)
+
+parser = TimeParser()
+tf = parser.parse("查询2025年8月的MAU")
+print(tf)
+```
+
+说明：
+- 组件通过 `core/` 定义的接口与类型对外暴露，内部复用现有 `services/` 逻辑，保证行为不变，同时便于主项目按接口集成。
+- 配置读取统一由 `config/manager.py` 提供门面对象，遵循环境变量与 `.env.example` 约束。
+- 后续阶段会将 SQL 生成/执行、指标解析、向量检索等逐步抽出为独立组件与适配器。
+
+#### 组件直连示例：IRBuilder + SQL 生成与执行
+```python
+from datainsight_agent.components.query_rewriter import QueryRewriter
+from datainsight_agent.components.ir_builder import IRBuilder
+from datainsight_agent.components.sql_generator import SQLGeneratorComponent, SQLExecutorComponent
+
+question = "查询2025年8月的MAU"
+
+# 1) 重写：统一指标名/分组/时间
+rew = QueryRewriter().rewrite(question)
+
+# 2) 构建 IR：将 time_period → month，time_filter → WHERE（single/range/list）
+ir = IRBuilder().build(rew)
+
+# 3) 生成并执行 SQL
+sql_text = SQLGeneratorComponent().generate(ir, "dws_user_activity_monthly")
+rows = SQLExecutorComponent().execute(sql_text)
+print(sql_text, rows)
+```
+
+> 注：`services/*` 现已标注为 legacy，被 `components/*` 桥接。新代码建议面向组件接口编程，可逐步替代旧路径。
+
 ## Safety & Compliance
 - Sensitive credentials are managed strictly via environment variables. No hard-coded secrets.
 - Destructive operations (e.g., ETL writes) require explicit confirmation (`--yes`).
@@ -109,67 +169,6 @@ Environment variables are loaded via `python-dotenv`. For the complete list and 
 
 ---
 
-## 项目简介
-DataInsight Agent 是一个企业级的智能数据代理，支持自然语言到 SQL 的安全转换。系统采用 Text-to-IR-to-SQL 流程，并使用本地混合知识库：HNSW（语义向量）+ SQLite（结构化知识）；编排由 LlamaIndex 驱动（QueryPipeline + 组件化）。
-
-## 功能特性
-- 文本→IR→SQL 的安全生成流程
-- 本地混合知识库：HNSW（向量检索）+ SQLite（结构化元数据）
-- 基于 LlamaIndex 的可扩展编排
-- 结构化日志（控制台 + 文件）
-- RAGFlow 风格的离线 ETL 封装
-- Typer CLI（运行、ETL、健康检查）
-
-## 快速开始
-1）复制环境变量模板并填充：
-```bash
-copy .env.example .env
-```
-
-2）安装依赖（建议虚拟环境）：
-```bash
-pip install -r requirements.txt
-```
-
-3）运行健康检查：
-```bash
-python -m datainsight_agent.cli check
-```
-
-4）启动 Agent（示例）：
-```bash
-python -m datainsight_agent.cli run --question "本月 MAU 是多少？"
-```
-
-5）执行 ETL（默认 dry-run，写入需确认）：
-```bash
-python -m datainsight_agent.cli etl --source ./metadata --dry-run
-python -m datainsight_agent.cli etl --source ./metadata --yes
-```
-
-## 配置说明
-- 向量：`VECTOR_INDEX_DIR`，`VECTOR_SPACE`（ip|l2），`VECTOR_DIM`
-- 本地图：`GRAPH_BACKEND=local`，`LOCAL_GRAPH_PATH`
-- 日志：`LOG_LEVEL`，`LOG_DIR`
-- LLM：`OPENAI_API_KEY`
-- Q2Q：`LLM_Q2Q_ENABLED`（1/0 开关），`LLM_Q2Q_TOP_K`（重写上下文 Top-K）
-- SQL：`DATABASE_URL`（用于校验/EXPLAIN/执行）
-- 检索（两阶段+RRF融合）：
-  - `TWO_STAGE_RETRIEVAL_ENABLED`（默认 1）
-  - `RETRIEVE_STAGE1_TOP_K`（默认 12）
-  - `RETRIEVE_WEIGHT_VECTOR`（默认 0.7）- 向量排序的RRF权重
-  - `RETRIEVE_WEIGHT_GRAPH`（默认 0.3）- 图排序的RRF权重
-- 时间过滤：
-  - `TIME_REQUIRE_EXPLICIT`（默认 1）- 是否要求明确时间条件
-  - `TIME_CONFIRM_DEFAULT`（默认 1）- 是否确认默认时间窗口
-  - `DEFAULT_TIME_WINDOW_MONTHS`（默认 12）- 默认时间窗口月数
- - 嵌入/下载：
-   - `EMBED_BACKEND`（默认 fastembed，可选 openai）
-   - `EMBED_MODEL_NAME`（默认 BAAI/bge-small-zh-v1.5，用于 fastembed）
-   - `HF_CACHE_DIR`（默认 ./.hf_cache，本地缓存目录）
-   - `HF_ENDPOINT`（可选 HF 镜像，如 https://hf-mirror.com）
-   - `FASTEMBED_THREADS`（默认 0 自动，设定 BLAS 线程数）
-   - `OPENAI_EMBED_MODEL`（默认 text-embedding-3-small，用于 openai 后端）
 
 ## 环境与运行（推荐 uv）
 优先使用 `uv` 来管理 Python 环境与运行（也可使用 `pip`，见上文）。
@@ -178,71 +177,6 @@ python -m datainsight_agent.cli etl --source ./metadata --yes
 uv venv
 uv pip install -r requirements.txt
 
-# 运行 CLI（示例）
-uv run -m datainsight_agent.cli check
-uv run -m datainsight_agent.cli run --question "本月 MAU 是多少？"
-# 切换到 LlamaIndex 引擎
-uv run -m datainsight_agent.cli run --question "本月 MAU 是多少？" --engine llamaindex
-```
-
-### 嵌入模型下载与加速（fastembed）
-- 若遇到 HuggingFace 下载失败（如 SSL/EOF），可在 `.env` 或系统环境中设置镜像与缓存：
-  - `HF_ENDPOINT=https://hf-mirror.com`
-  - `HF_CACHE_DIR=.hf_cache`
-  - 可选：`HF_HOME=.hf_cache`、`HF_DATASETS_CACHE=.hf_cache`、`TRANSFORMERS_CACHE=.hf_cache`
-  - 控制线程：`FASTEMBED_THREADS=0`（自动）或具体数值
-- Windows PowerShell 示例：
-```powershell
-$env:HF_ENDPOINT='https://hf-mirror.com'
-$env:HF_CACHE_DIR='.hf_cache'
-uv run -m datainsight_agent.cli rewrite --question "各渠道 MAU 对比"
-```
-
-## .env.example（建议）
-将以下内容保存为项目根目录的 `.env.example`，并复制为 `.env` 后按需修改：
-```dotenv
-# LLM / OpenAI 兼容
-OPENAI_API_KEY=
-OPENAI_BASE_URL=
-
-# 向量与嵌入
-VECTOR_INDEX_DIR=vector_index
-VECTOR_SPACE=ip
-VECTOR_DIM=384
-EMBED_BACKEND=fastembed  # fastembed | openai
-EMBED_MODEL_NAME=BAAI/bge-small-zh-v1.5
-HF_CACHE_DIR=.hf_cache
-HF_ENDPOINT=
-FASTEMBED_THREADS=0
-OPENAI_EMBED_MODEL=text-embedding-3-small
-
-# 元数据/图
-GRAPH_BACKEND=local
-LOCAL_GRAPH_PATH=kb_graph.sqlite
-METADATA_DIR=metadata
-
-# 数据仓库
-WAREHOUSE_DIALECT=sqlite
-DW_TABLE=dws_user_activity_monthly
-DW_TIME_COLUMN=month
-DATABASE_URL=sqlite:///./datainsight.db
-
-# 时间策略
-DEFAULT_TIME_WINDOW_MONTHS=12
-TIME_REQUIRE_EXPLICIT=1
-TIME_CONFIRM_DEFAULT=1
-
-# Q2Q / RAG
-LLM_Q2Q_ENABLED=1
-LLM_Q2Q_TOP_K=6
-RAG_TOP_K=5
-
-# 两阶段检索 + RRF
-TWO_STAGE_RETRIEVAL_ENABLED=1
-RETRIEVE_STAGE1_TOP_K=12
-RETRIEVE_WEIGHT_VECTOR=0.7
-RETRIEVE_WEIGHT_GRAPH=0.3
-```
 
 ## CLI 子命令（统一清单）
 - `check`：环境检查
@@ -274,17 +208,6 @@ RETRIEVE_WEIGHT_GRAPH=0.3
 ```bash
 python -m datainsight_agent.cli log-test --message "hello"
 python -m datainsight_agent.cli log-test-raw --path ./logs/datainsight_manual.log --message "hello"
-```
-
-## Timings 用法
-打印编排节点（如 `deconstruct`、`retrieve`、`plan`、`build_ir`、`execute_or_respond`）的开始/结束时间与耗时（秒）：
-```bash
-python -m datainsight_agent.cli timings --question "今年各渠道的 MAU 对比"
-# 输出：
-# node    start_s end_s  duration_s
-# node_deconstruct 0.000 0.250 0.250
-# node_retrieve    0.251 0.420 0.169
-# ...
 ```
 
 ## Q2Q（Query-to-Query 重写）配置

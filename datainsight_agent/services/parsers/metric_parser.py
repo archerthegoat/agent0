@@ -1,7 +1,8 @@
 """
-度量解析器
+LEGACY: Metric parsing logic.
 
-将度量解析逻辑从_BuildIRComponent中提取出来，提供更清晰的接口。
+Bridged by the component `components.metric_resolver.MetricResolver`.
+Prefer the component interface in new code.
 """
 
 from typing import Dict, Any, List, Optional
@@ -40,7 +41,8 @@ class MetricParser:
             return [SemanticAggregation(
                 function=str(agg.get("function") or "").upper() or "COUNT",
                 field=str(agg.get("field") or "DISTINCT user_id"),
-                alias=alias_value
+                alias=alias_value,
+                table_mapping=metric_def.table_mapping  # 添加表映射信息
             )]
         
         # 2) 回退到关键词映射（仅聚合，不附带硬编码过滤）
@@ -106,7 +108,7 @@ class MetricParser:
     def _resolve_metric_def(self, state: Dict[str, Any]):
         """使用注册表解析度量定义，优先采用 clarified_inputs.metric，其次从原始问题中提取候选token精确匹配。"""
         try:
-            from datainsight_agent.services.metric_registry import MetricRegistry
+            from datainsight_agent.services.registry.metric_registry import MetricRegistry
             reg = MetricRegistry()
             clarified_metric = str((state.get("clarified_inputs") or {}).get("metric") or "").strip()
             if clarified_metric:

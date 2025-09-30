@@ -46,12 +46,11 @@ class _Q2QComponent:
 				if self._pipeline_instance:
 					s = self._pipeline_instance._get_settings()
 					rewriter = self._pipeline_instance._get_q2q_rewriter()
-					rr = rewriter.rewrite(q, top_k=int(getattr(s, "llm_q2q_top_k", 6)))
+					rr = rewriter.rewrite(q)
 				else:
-					from datainsight_agent.config.settings import load_settings
-					from datainsight_agent.services.q2q import Q2QRewriter
-					s = load_settings()
-					rr = Q2QRewriter().rewrite(q, top_k=int(getattr(s, "llm_q2q_top_k", 6)))
+					from datainsight_agent.services.core.query_rewriter import OptimizedQ2QRewriter
+					rewriter = OptimizedQ2QRewriter()
+					rr = rewriter.rewrite(q)
 				if rr:
 					try:
 						q2q_now = st.get("q2q") or {}
@@ -86,14 +85,20 @@ class _Q2QComponent:
 			if not q:
 				return st
 			
-			print(f"[DEBUG] Q2Q开始处理问题: '{q[:50]}...'")
+			try:
+				print(f"[DEBUG] Q2Q开始处理问题: '{q[:50]}...'")
+			except UnicodeError:
+				print(f"[DEBUG] Q2Q开始处理问题: encoding error")
 			
 			# 智能跳过机制：检查问题是否已经足够明确
 			if self._is_question_clear_enough(q):
 				# 问题明确，直接构造基础q2q结构，跳过LLM调用
 				st["q2q"] = self._create_basic_q2q(q)
 				st["skipped_llm"] = True
-				print(f"[DEBUG] Q2Q智能跳过，生成基础q2q: {st['q2q'].get('concepts', [])}")
+				try:
+					print(f"[DEBUG] Q2Q智能跳过，生成基础q2q: {st['q2q'].get('concepts', [])}")
+				except UnicodeError:
+					print(f"[DEBUG] Q2Q智能跳过，生成基础q2q: encoding error")
 				return st
 			
 			# 问题不够明确，需要LLM重写
@@ -101,31 +106,43 @@ class _Q2QComponent:
 			if self._pipeline_instance:
 				s = self._pipeline_instance._get_settings()
 				rewriter = self._pipeline_instance._get_q2q_rewriter()
-				rr = rewriter.rewrite(q, top_k=int(getattr(s, "llm_q2q_top_k", 6)))
+				rr = rewriter.rewrite(q)
 			else:
 				# 回退到原始方式
-				from datainsight_agent.config.settings import load_settings
-				from datainsight_agent.services.q2q import Q2QRewriter
-				s = load_settings()
-				rr = Q2QRewriter().rewrite(q, top_k=int(getattr(s, "llm_q2q_top_k", 6)))
+				from datainsight_agent.services.core.query_rewriter import OptimizedQ2QRewriter
+				rewriter = OptimizedQ2QRewriter()
+				rr = rewriter.rewrite(q)
 			
 			if rr:
 				try:
 					q2q_data = rr.model_dump()
 					st["q2q"] = q2q_data
-					print(f"[DEBUG] Q2Q保存的q2q数据: {q2q_data}")
+					try:
+						print(f"[DEBUG] Q2Q保存的q2q数据: {q2q_data}")
+					except UnicodeError:
+						print(f"[DEBUG] Q2Q保存的q2q数据: encoding error")
 					# 若 concepts 存在于重写结果，且当前 state 尚无概念，则填充
 					cpts = getattr(rr, "concepts", None)
-					print(f"[DEBUG] Q2Q LLM重写结果: concepts={cpts}")
+					try:
+						print(f"[DEBUG] Q2Q LLM重写结果: concepts={cpts}")
+					except UnicodeError:
+						print(f"[DEBUG] Q2Q LLM重写结果: encoding error")
 					if cpts and not st.get("concepts"):
 						st["concepts"] = [str(x) for x in cpts if isinstance(x, str)]
-						print(f"[DEBUG] Q2Q填充concepts到state: {st['concepts']}")
+						try:
+							print(f"[DEBUG] Q2Q填充concepts到state: {st['concepts']}")
+						except UnicodeError:
+							print(f"[DEBUG] Q2Q填充concepts到state: encoding error")
 				except Exception:
 					pass
 			st["skipped_llm"] = False
 			
-		except Exception:
+		except Exception as e:
 			# 忽略 Q2Q 错误；继续后续节点
+			try:
+				print(f"[DEBUG] Q2Q异常: {str(e)}")
+			except UnicodeError:
+				print(f"[DEBUG] Q2Q异常: encoding error")
 			pass
 		
 		return st
@@ -190,10 +207,10 @@ class _RetrieveComponent:
 		# 直接调用 RetrievalService，避免依赖 LangGraph 节点
 		from datainsight_agent.config.settings import load_settings
 		from pathlib import Path
-		from datainsight_agent.clients.vector_store import LocalHNSWVectorStore, EmbeddingModel
+		from datainsight_agent.clients.vector_store import MilvusVectorStore, EmbeddingModel
 		from datainsight_agent.clients.graph_client import LocalGraphClient
 		from datainsight_agent.services.retrieval import RetrievalService
-		from datainsight_agent.services.auth import KnowledgeBaseAuth
+		from datainsight_agent.services.utils.auth import KnowledgeBaseAuth
 		
 		st = dict(state)
 		
@@ -238,44 +255,44 @@ class _RetrieveComponent:
 		entities = []
 		try:
 			s = load_settings()
+			# 使用 Milvus 向量存储
+			from datainsight_agent.clients.vector_store import MilvusVectorStore
 			vector_store = None
 			local_graph = None
-			vdir = Path(s.vector_index_dir)
-			if vdir.exists():
+			
+			# 初始化 Milvus 向量存储
+			if getattr(s, "milvus_enabled", False):
 				try:
 					# 根据配置决定是否使用缓存
 					cache_enabled = getattr(s, "retrieve_cache_enabled", True)
-					# print(f"[DEBUG] 缓存配置: retrieve_cache_enabled={cache_enabled}")
 					
 					if cache_enabled:
 						# 优化：使用类级缓存的embedding模型和向量存储，避免重复初始化
 						if not hasattr(_RetrieveComponent, '_shared_embedder'):
-							# print("[DEBUG] 初始化embedding模型缓存")
 							_RetrieveComponent._shared_embedder = EmbeddingModel()
 						if not hasattr(_RetrieveComponent, '_shared_vector_store'):
-							# print("[DEBUG] 初始化向量存储缓存")
 							_infer_dim = len(_RetrieveComponent._shared_embedder.embed(["__probe__"])[0])
-							_RetrieveComponent._shared_vector_store = LocalHNSWVectorStore(
-								index_dir=vdir, dim=int(_infer_dim), space=str(s.vector_space)
+							_RetrieveComponent._shared_vector_store = MilvusVectorStore(
+								dim=int(_infer_dim), space=str(s.vector_space)
 							)
 						vector_store = _RetrieveComponent._shared_vector_store
-						# print("[DEBUG] 使用缓存的向量存储")
 					else:
 						# 禁用缓存：每次都创建新实例
-						# print("[DEBUG] 缓存已禁用，创建新的embedding模型和向量存储")
 						embedder = EmbeddingModel()
 						_infer_dim = len(embedder.embed(["__probe__"])[0])
-						vector_store = LocalHNSWVectorStore(
-							index_dir=vdir, dim=int(_infer_dim), space=str(s.vector_space)
+						vector_store = MilvusVectorStore(
+							dim=int(_infer_dim), space=str(s.vector_space)
 						)
-						# print("[DEBUG] 创建新的向量存储实例")
-				except Exception:
-					# 回退到直接创建
-					# print("[DEBUG] 回退到直接创建向量存储")
-					vector_store = LocalHNSWVectorStore(index_dir=vdir, dim=int(s.vector_dim), space=str(s.vector_space))
+				except Exception as e:
+					from datainsight_agent.common.logging import get_logger
+					get_logger("retrieve").warning("milvus_init_failed", error=str(e))
+					vector_store = None
+			
+			# 初始化本地图数据库
 			gpath = Path(s.local_graph_path)
 			if gpath.exists():
 				local_graph = LocalGraphClient(str(gpath))
+			
 			if vector_store or local_graph:
 				retriever = RetrievalService(vector_store=vector_store, local_graph=local_graph)
 				# 优化：减少检索数量，提高性能
@@ -292,7 +309,11 @@ class _RetrieveComponent:
 			else:
 				from datainsight_agent.common.logging import get_logger
 				get_logger("retrieve").debug("no_vector_or_graph_store")
-		except Exception:
+		except Exception as e:
+			try:
+				print(f"[DEBUG] Retrieve组件异常: {str(e)}")
+			except UnicodeError:
+				print(f"[DEBUG] Retrieve组件异常: encoding error")
 			entities = []
 		
 		st["kb_entities"] = entities
@@ -336,8 +357,8 @@ class _PlanComponent:
 	def __call__(self, state: Dict[str, Any]) -> Dict[str, Any]:
 		# 规划阶段：根据 q2q/问题文本/时间策略确定计划
 		from datainsight_agent.config.settings import load_settings
-		from datainsight_agent.services.metric_registry import MetricRegistry
-		from datainsight_agent.services.time_filter_parser import parse_time_filter
+		from datainsight_agent.services.registry.metric_registry import MetricRegistry
+		from datainsight_agent.services.parsers.time_filter_parser import parse_time_filter
 		
 		st = dict(state)
 		
@@ -413,9 +434,9 @@ class _BuildIRComponent:
 		# 构建 IR：维度→group_by，度量解析，时间过滤解析与规范化
 		from datainsight_agent.config.settings import load_settings
 		from datainsight_agent.models.ir import SemanticQueryIR
-		from datainsight_agent.services.dimension_parser import parse_dimensions
-		from datainsight_agent.services.metric_parser import parse_metrics, parse_metric_filters
-		from datainsight_agent.services.time_filter_parser import parse_time_filter
+		from datainsight_agent.services.parsers.dimension_parser import parse_dimensions
+		from datainsight_agent.services.parsers.metric_parser import parse_metrics, parse_metric_filters
+		from datainsight_agent.services.parsers.time_filter_parser import parse_time_filter
 		
 		st = dict(state)
 		ir = SemanticQueryIR()
@@ -469,7 +490,7 @@ class _BuildIRComponent:
 							qtxt = str(st.get("question") or "")
 							# 优化：缓存MetricRegistry实例
 							if not hasattr(self, '_cached_metric_registry'):
-								from datainsight_agent.services.metric_registry import MetricRegistry
+								from datainsight_agent.services.registry.metric_registry import MetricRegistry
 								self._cached_metric_registry = MetricRegistry()
 							has_metric = self._cached_metric_registry.resolve_from_signals(concepts + [qtxt]) is not None
 						except Exception:
@@ -485,7 +506,7 @@ class _BuildIRComponent:
 					return st
 				else:
 					# 不要求明确时间，创建默认时间过滤器
-					from datainsight_agent.services.time_filter_parser import TimeFilterParser
+					from datainsight_agent.services.parsers.time_filter_parser import TimeFilterParser
 					parser = TimeFilterParser()
 					default_time_filter = parser.create_default_filter(time_col)
 					ir.filters.append(default_time_filter)
@@ -644,9 +665,9 @@ class _ExecuteOrRespondComponent:
 		# 直接执行 IR→SQL→校验/执行，避免依赖 LangGraph 节点
 		from datainsight_agent.config.settings import load_settings
 		from datainsight_agent.models.ir import SemanticQueryIR
-		from datainsight_agent.services.sql_generator import SQLGenerator
+		from datainsight_agent.services.core.sql_generator import SQLGenerator
 		from datainsight_agent.services.sql_validator import SQLValidator
-		from datainsight_agent.services.sql_executor import SQLExecutor
+		from datainsight_agent.services.core.sql_executor import SQLExecutor
 		
 		st = dict(state)
 		plan = st.get("plan")
@@ -830,7 +851,7 @@ class LIPipeline:
 	def _get_metric_retriever(self):
 		"""获取缓存的指标检索器实例"""
 		if self._metric_retriever is None:
-			from datainsight_agent.services.metric_retriever import MetricRetriever
+			from datainsight_agent.services.registry.metric_retriever import MetricRetriever
 			self._metric_retriever = MetricRetriever()
 		return self._metric_retriever
 

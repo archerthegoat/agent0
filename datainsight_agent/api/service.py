@@ -6,6 +6,9 @@ API服务层
 
 from typing import Dict, Any, Optional
 from datainsight_agent.orchestrator.li.pipeline import LIPipeline
+from datainsight_agent.components.query_rewriter import QueryRewriter
+from datainsight_agent.components.time_parser import TimeParser
+from datainsight_agent.components.sql_generator import SQLGeneratorComponent, SQLExecutorComponent
 from datainsight_agent.config.settings import load_settings
 from datainsight_agent.common.logging import get_logger
 from .models import QueryRequest, QueryResponse, PlanResponse
@@ -41,7 +44,7 @@ class APIService:
             if request.time_filter_override:
                 state["time_filter_override"] = request.time_filter_override
             
-            # 执行pipeline
+            # 执行原有 pipeline（仅保留原链路）
             result = {}
             for values in self.pipeline.stream(state, stream_mode="values"):
                 if isinstance(values, dict):

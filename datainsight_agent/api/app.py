@@ -15,6 +15,7 @@ from .models import QueryRequest, QueryResponse, HealthResponse, ErrorResponse
 from .service import APIService
 from datainsight_agent.config.settings import load_settings
 from datainsight_agent.common.logging import get_logger
+from datainsight_agent.api.middleware import APIKeyAuthMiddleware, RequestLoggingMiddleware
 
 logger = get_logger("api_app")
 
@@ -53,6 +54,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # 结构化请求日志与可选 API-Key 鉴权（通过环境变量 API_KEY 启用）
+    app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(APIKeyAuthMiddleware)
     
     return app
 

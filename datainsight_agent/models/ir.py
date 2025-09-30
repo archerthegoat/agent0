@@ -17,6 +17,7 @@ class SemanticAggregation(BaseModel):
 	function: str
 	field: Optional[str] = None
 	alias: Optional[str] = None
+	table_mapping: Optional[Dict[str, str]] = None  # 添加表映射信息
 
 
 class SemanticJoin(BaseModel):

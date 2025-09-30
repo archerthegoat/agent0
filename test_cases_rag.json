@@ -1,0 +1,701 @@
+[
+  {
+    "id": "test_001",
+    "question": "查询2025年8月的月活跃用户数",
+    "expected_sql": "SELECT COUNT(user_id) AS mau FROM dws_user_activity WHERE month = '2025-08'",
+    "expected_result": [
+      {
+        "mau": 2
+      }
+    ],
+    "expected_metrics": [
+      "mau"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [],
+    "category": "basic_metric",
+    "description": "基础指标查询",
+    "expected_rag_entities": [
+      "mau",
+      "month",
+      "user_id"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户",
+      "2025年8月"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_002",
+    "question": "统计2025年8月到9月的DAU",
+    "expected_sql": "SELECT COUNT(DISTINCT user_id) AS dau FROM dws_user_activity WHERE month BETWEEN '2025-08' AND '2025-09'",
+    "expected_result": [
+      {
+        "dau": 4
+      }
+    ],
+    "expected_metrics": [
+      "dau"
+    ],
+    "expected_time_filter": "2025-08,2025-09",
+    "expected_group_by": [],
+    "category": "time_range",
+    "description": "时间范围查询",
+    "expected_rag_entities": [
+      "dau",
+      "month",
+      "user_id"
+    ],
+    "expected_rag_concepts": [
+      "日活跃用户",
+      "2025年8月到9月"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_003",
+    "question": "分析2025年第3季度的UV趋势",
+    "expected_sql": "SELECT COUNT(DISTINCT user_id) AS uv FROM dws_user_activity WHERE month BETWEEN '2025-07' AND '2025-09'",
+    "expected_result": [
+      {
+        "uv": 4
+      }
+    ],
+    "expected_metrics": [
+      "uv"
+    ],
+    "expected_time_filter": "2025-07,2025-09",
+    "expected_group_by": [],
+    "category": "quarter_analysis",
+    "description": "季度分析查询",
+    "expected_rag_entities": [
+      "uv",
+      "month",
+      "user_id"
+    ],
+    "expected_rag_concepts": [
+      "独立访客",
+      "2025年第3季度"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_004",
+    "question": "按渠道统计MAU",
+    "expected_sql": "SELECT channel, COUNT(user_id) AS mau FROM dws_user_activity WHERE month = '2025-08' GROUP BY channel",
+    "expected_result": [
+      {
+        "channel": "mobile",
+        "mau": 1
+      },
+      {
+        "channel": "web",
+        "mau": 1
+      }
+    ],
+    "expected_metrics": [
+      "mau"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel"
+    ],
+    "category": "group_by_dimension",
+    "description": "按维度分组查询",
+    "expected_rag_entities": [
+      "mau",
+      "channel",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户",
+      "渠道"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_005",
+    "question": "按设备类型统计DAU",
+    "expected_sql": "SELECT device_type, COUNT(DISTINCT user_id) AS dau FROM dws_user_activity WHERE month = '2025-08' GROUP BY device_type",
+    "expected_result": [
+      {
+        "device_type": "desktop",
+        "dau": 1
+      },
+      {
+        "device_type": "mobile",
+        "dau": 1
+      }
+    ],
+    "expected_metrics": [
+      "dau"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "device_type"
+    ],
+    "category": "device_analysis",
+    "description": "设备分析查询",
+    "expected_rag_entities": [
+      "dau",
+      "device_type",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "日活跃用户",
+      "设备类型"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_006",
+    "question": "按地区统计UV",
+    "expected_sql": "SELECT region, COUNT(DISTINCT user_id) AS uv FROM dws_user_activity WHERE month = '2025-08' GROUP BY region",
+    "expected_result": [
+      {
+        "region": "north",
+        "uv": 1
+      },
+      {
+        "region": "south",
+        "uv": 1
+      }
+    ],
+    "expected_metrics": [
+      "uv"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "region"
+    ],
+    "category": "region_analysis",
+    "description": "地区分析查询",
+    "expected_rag_entities": [
+      "uv",
+      "region",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "独立访客",
+      "地区"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_007",
+    "question": "查询2025年8月到10月的MAU月度变化",
+    "expected_sql": "SELECT month, COUNT(user_id) AS mau FROM dws_user_activity WHERE month BETWEEN '2025-08' AND '2025-10' GROUP BY month ORDER BY month",
+    "expected_result": [
+      {
+        "month": "2025-08",
+        "mau": 2
+      },
+      {
+        "month": "2025-09",
+        "mau": 4
+      },
+      {
+        "month": "2025-10",
+        "mau": 1
+      }
+    ],
+    "expected_metrics": [
+      "mau"
+    ],
+    "expected_time_filter": "2025-08,2025-10",
+    "expected_group_by": [
+      "month"
+    ],
+    "category": "trend_analysis",
+    "description": "趋势分析查询",
+    "expected_rag_entities": [
+      "mau",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户",
+      "月度变化"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_008",
+    "question": "2025年各季度的UV对比",
+    "expected_sql": "SELECT CASE WHEN month BETWEEN '2025-01' AND '2025-03' THEN 'Q1' WHEN month BETWEEN '2025-04' AND '2025-06' THEN 'Q2' WHEN month BETWEEN '2025-07' AND '2025-09' THEN 'Q3' WHEN month BETWEEN '2025-10' AND '2025-12' THEN 'Q4' END AS quarter, COUNT(DISTINCT user_id) AS uv FROM dws_user_activity WHERE month BETWEEN '2025-01' AND '2025-12' GROUP BY CASE WHEN month BETWEEN '2025-01' AND '2025-03' THEN 'Q1' WHEN month BETWEEN '2025-04' AND '2025-06' THEN 'Q2' WHEN month BETWEEN '2025-07' AND '2025-09' THEN 'Q3' WHEN month BETWEEN '2025-10' AND '2025-12' THEN 'Q4' END ORDER BY quarter",
+    "expected_result": [
+      {
+        "quarter": "Q1",
+        "uv": 3
+      },
+      {
+        "quarter": "Q2",
+        "uv": 3
+      },
+      {
+        "quarter": "Q3",
+        "uv": 4
+      },
+      {
+        "quarter": "Q4",
+        "uv": 3
+      }
+    ],
+    "expected_metrics": [
+      "uv"
+    ],
+    "expected_time_filter": "2025-01,2025-12",
+    "expected_group_by": [
+      "quarter"
+    ],
+    "category": "quarterly_comparison",
+    "description": "季度对比查询",
+    "expected_rag_entities": [
+      "uv",
+      "quarter"
+    ],
+    "expected_rag_concepts": [
+      "独立访客",
+      "季度对比"
+    ],
+    "time_clarification": {
+      "expected_input": "2025-01,2025-12",
+      "description": "模拟用户澄清时间范围"
+    }
+  },
+  {
+    "id": "test_009",
+    "question": "2025年8月各渠道MAU和DAU对比",
+    "expected_sql": "SELECT channel, COUNT(user_id) AS mau, COUNT(DISTINCT user_id) AS dau FROM dws_user_activity WHERE month = '2025-08' GROUP BY channel",
+    "expected_result": [
+      {
+        "channel": "mobile",
+        "mau": 1,
+        "dau": 1
+      },
+      {
+        "channel": "web",
+        "mau": 1,
+        "dau": 1
+      }
+    ],
+    "expected_metrics": [
+      "mau",
+      "dau"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel"
+    ],
+    "category": "multi_metric",
+    "description": "多指标查询",
+    "expected_rag_entities": [
+      "mau",
+      "dau",
+      "channel"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户",
+      "日活跃用户",
+      "渠道"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_010",
+    "question": "按设备类型统计MAU和PV",
+    "expected_sql": "SELECT device_type, COUNT(user_id) AS mau, COUNT(page_view_id) AS pv FROM dws_user_activity WHERE month = '2025-08' GROUP BY device_type",
+    "expected_result": [
+      {
+        "device_type": "desktop",
+        "mau": 1,
+        "pv": 1
+      },
+      {
+        "device_type": "mobile",
+        "mau": 1,
+        "pv": 1
+      }
+    ],
+    "expected_metrics": [
+      "mau",
+      "pv"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "device_type"
+    ],
+    "category": "multi_metric",
+    "description": "多指标查询",
+    "expected_rag_entities": [
+      "mau",
+      "pv",
+      "device_type"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户",
+      "页面访问",
+      "设备类型"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_011",
+    "question": "2025年8月各时段的DAU分布",
+    "expected_sql": "SELECT created_hour, COUNT(DISTINCT user_id) AS dau FROM dws_user_activity WHERE month = '2025-08' GROUP BY created_hour ORDER BY created_hour",
+    "expected_result": [
+      {
+        "created_hour": 9,
+        "dau": 1
+      },
+      {
+        "created_hour": 14,
+        "dau": 1
+      }
+    ],
+    "expected_metrics": [
+      "dau"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "created_hour"
+    ],
+    "category": "hourly_distribution",
+    "description": "时段分布查询",
+    "expected_rag_entities": [
+      "dau",
+      "created_hour"
+    ],
+    "expected_rag_concepts": [
+      "日活跃用户",
+      "时段分布"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_012",
+    "question": "移动端和Web端的MAU对比分析",
+    "expected_sql": "SELECT channel, COUNT(user_id) AS mau FROM dws_user_activity WHERE month = '2025-08' GROUP BY channel",
+    "expected_result": [
+      {
+        "channel": "mobile",
+        "mau": 1
+      },
+      {
+        "channel": "web",
+        "mau": 1
+      }
+    ],
+    "expected_metrics": [
+      "mau"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel"
+    ],
+    "category": "platform_comparison",
+    "description": "平台对比查询",
+    "expected_rag_entities": [
+      "mau",
+      "channel"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户",
+      "平台对比"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_013",
+    "question": "查询MAU",
+    "expected_sql": "SELECT COUNT(user_id) AS mau FROM dws_user_activity WHERE month = '2025-08'",
+    "expected_result": [
+      {
+        "mau": 2
+      }
+    ],
+    "expected_metrics": [
+      "mau"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [],
+    "category": "basic_metric",
+    "description": "基础指标查询",
+    "expected_rag_entities": [
+      "mau",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户"
+    ],
+    "time_clarification": {
+      "expected_input": "2025-08",
+      "description": "模拟用户澄清时间范围"
+    }
+  },
+  {
+    "id": "test_014",
+    "question": "用户活跃度统计",
+    "expected_sql": "SELECT COUNT(user_id) AS mau FROM dws_user_activity WHERE month = '2025-08'",
+    "expected_result": [
+      {
+        "mau": 2
+      }
+    ],
+    "expected_metrics": [
+      "mau"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [],
+    "category": "synonym_metric",
+    "description": "同义词指标查询",
+    "expected_rag_entities": [
+      "mau",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度"
+    ],
+    "time_clarification": {
+      "expected_input": "2025-08",
+      "description": "模拟用户澄清时间范围"
+    }
+  },
+  {
+    "id": "test_015",
+    "question": "最近3个月的PV统计",
+    "expected_sql": "SELECT COUNT(page_view_id) AS pv FROM dws_user_activity WHERE month BETWEEN '2025-07' AND '2025-09'",
+    "expected_result": [
+      {
+        "pv": 6
+      }
+    ],
+    "expected_metrics": [
+      "pv"
+    ],
+    "expected_time_filter": "2025-07,2025-09",
+    "expected_group_by": [],
+    "category": "relative_time",
+    "description": "相对时间查询",
+    "expected_rag_entities": [
+      "pv",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "页面访问",
+      "最近3个月"
+    ],
+    "time_clarification": {
+      "expected_input": "2025-07,2025-09",
+      "description": "模拟用户澄清时间范围"
+    }
+  },
+  {
+    "id": "test_016",
+    "question": "2025年9月的DAU按平台分析",
+    "expected_sql": "SELECT platform, COUNT(DISTINCT user_id) AS dau FROM dws_user_activity WHERE month = '2025-09' GROUP BY platform",
+    "expected_result": [
+      {
+        "platform": "android",
+        "dau": 1
+      },
+      {
+        "platform": "ios",
+        "dau": 1
+      },
+      {
+        "platform": "web",
+        "dau": 2
+      }
+    ],
+    "expected_metrics": [
+      "dau"
+    ],
+    "expected_time_filter": "2025-09",
+    "expected_group_by": [
+      "platform"
+    ],
+    "category": "platform_analysis",
+    "description": "平台分析查询",
+    "expected_rag_entities": [
+      "dau",
+      "platform",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "日活跃用户",
+      "平台分析"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_017",
+    "question": "2025年第二季度的MAU和UV对比",
+    "expected_sql": "SELECT COUNT(user_id) AS mau, COUNT(DISTINCT user_id) AS uv FROM dws_user_activity WHERE month BETWEEN '2025-04' AND '2025-06'",
+    "expected_result": [
+      {
+        "mau": 3,
+        "uv": 3
+      }
+    ],
+    "expected_metrics": [
+      "mau",
+      "uv"
+    ],
+    "expected_time_filter": "2025-04,2025-06",
+    "expected_group_by": [],
+    "category": "quarterly_metric",
+    "description": "季度指标查询",
+    "expected_rag_entities": [
+      "mau",
+      "uv",
+      "quarter"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户",
+      "独立访客",
+      "第二季度"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_018",
+    "question": "按地区统计各时段的PV分布",
+    "expected_sql": "SELECT region, created_hour, COUNT(page_view_id) AS pv FROM dws_user_activity WHERE month = '2025-08' GROUP BY region, created_hour ORDER BY region, created_hour",
+    "expected_result": [
+      {
+        "region": "north",
+        "created_hour": 9,
+        "pv": 1
+      },
+      {
+        "region": "south",
+        "created_hour": 14,
+        "pv": 1
+      }
+    ],
+    "expected_metrics": [
+      "pv"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "region",
+      "created_hour"
+    ],
+    "category": "multi_dimension",
+    "description": "多维度分析查询",
+    "expected_rag_entities": [
+      "pv",
+      "region",
+      "created_hour"
+    ],
+    "expected_rag_concepts": [
+      "页面访问",
+      "地区",
+      "时段"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_019",
+    "question": "2025年第四季度的用户活跃情况",
+    "expected_sql": "SELECT COUNT(user_id) AS mau FROM dws_user_activity WHERE month BETWEEN '2025-10' AND '2025-12'",
+    "expected_result": [
+      {
+        "mau": 3
+      }
+    ],
+    "expected_metrics": [
+      "mau"
+    ],
+    "expected_time_filter": "2025-10,2025-12",
+    "expected_group_by": [],
+    "category": "quarterly_summary",
+    "description": "季度汇总查询",
+    "expected_rag_entities": [
+      "mau",
+      "quarter"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户",
+      "第四季度"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_020",
+    "question": "2025年各月的DAU趋势分析",
+    "expected_sql": "SELECT month, COUNT(DISTINCT user_id) AS dau FROM dws_user_activity WHERE month BETWEEN '2025-01' AND '2025-12' GROUP BY month ORDER BY month",
+    "expected_result": [
+      {
+        "dau": 1,
+        "month": "2025-01"
+      },
+      {
+        "dau": 1,
+        "month": "2025-02"
+      },
+      {
+        "dau": 1,
+        "month": "2025-03"
+      },
+      {
+        "dau": 1,
+        "month": "2025-04"
+      },
+      {
+        "dau": 1,
+        "month": "2025-05"
+      },
+      {
+        "dau": 1,
+        "month": "2025-06"
+      },
+      {
+        "dau": 2,
+        "month": "2025-07"
+      },
+      {
+        "dau": 2,
+        "month": "2025-08"
+      },
+      {
+        "dau": 4,
+        "month": "2025-09"
+      },
+      {
+        "dau": 1,
+        "month": "2025-10"
+      },
+      {
+        "dau": 1,
+        "month": "2025-11"
+      },
+      {
+        "dau": 1,
+        "month": "2025-12"
+      }
+    ],
+    "expected_metrics": [
+      "dau"
+    ],
+    "expected_time_filter": "2025-01,2025-12",
+    "expected_group_by": [
+      "month"
+    ],
+    "category": "yearly_trend",
+    "description": "年度趋势分析",
+    "expected_rag_entities": [
+      "dau",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "日活跃用户",
+      "年度趋势"
+    ],
+    "time_clarification": {
+      "expected_input": "2025-01,2025-12",
+      "description": "模拟用户澄清时间范围"
+    }
+  }
+]

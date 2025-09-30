@@ -86,3 +86,168 @@ def sql_preview_prompt(
 	)
 
 
+class Q2QSystemPrompts:
+	"""Q2Q系统提示词模板 - 集中管理所有硬编码的prompt内容"""
+	
+	@staticmethod
+	def get_base_rules() -> str:
+		"""基础时间解析规则"""
+		return """Extract time information from Chinese queries following exact patterns:
+
+QUARTER (季度) - MUST output canonical format:
+- "2025年第3季度" → type="quarter", value="2025年第3季度"
+- "2025-Q3" → type="quarter", value="2025-Q3"  
+- "2025年Q3" → type="quarter", value="2025年Q3"
+
+RANGE (范围):
+- "2025年8月到2025年9月" → type="range", value="2025-08,2025-09"
+- "2025年8月至9月" → type="range", value="2025-08,2025-09"
+
+SINGLE (单月):
+- "2025年8月" → type="single", value="2025-08"
+- "8月" → type="single", value="2025-08"
+
+RELATIVE (相对):
+- "最近2个月" → type="relative", value="last_2_months"
+- "近3个月" → type="relative", value="last_3_months"
+- "今年" → type="relative", value="this_year"
+
+YEAR (年):
+- "2025年" → type="year", value="2025"
+
+CRITICAL: For quarters, preserve original Chinese format in value field!
+
+DEFAULT TIME INFERENCE - CRITICAL for queries without explicit time:
+- If no time expression found, infer default time based on query context:
+  * "按渠道统计MAU" → type="single", value="2025-08" (current month)
+  * "按地区统计DAU" → type="single", value="2025-08" (current month)  
+  * "设备分析" → type="single", value="2025-08" (current month)
+  * "平台对比" → type="single", value="2025-08" (current month)
+  * Any statistical query without time → type="single", value="2025-08"
+
+IMPORTANT: Always provide a time_filter, never leave it as "none" for statistical queries!"""
+
+	@staticmethod
+	def get_default_time_inference() -> str:
+		"""默认时间推断规则"""
+		return """
+
+DEFAULT TIME INFERENCE - Apply when no explicit time found:
+- Statistical queries need default time scope
+- Use current month "2025-08" as default
+- Never return time_filter as "none" for MAU/DAU/UV/PV queries"""
+
+	@staticmethod
+	def get_group_by_mapping() -> str:
+		"""GROUP BY字段映射规则"""
+		return """
+
+GROUP BY FIELD MAPPING - CRITICAL for correct SQL generation:
+- 按月份/按月 → ["month"] 
+- 按地区/按区域 → ["region"]
+- 按渠道/按平台 → ["channel"]
+- 按设备类型/按设备 → ["device_type"]
+- 按时段/按小时/各时段 → ["created_hour"]
+- 按季度/各季度 → ["quarter"]
+- 按年份/按年 → ["year"]
+- 移动端和Web端/平台对比 → ["channel"]
+- 设备分析/设备统计 → ["device_type"]
+
+PLATFORM FIELD MAPPING - CRITICAL for platform analysis:
+- 平台分析/平台统计/平台对比 → ["platform"]
+- 按平台/平台维度 → ["platform"]
+- 平台类型/平台分布 → ["platform"]
+- 移动端和Web端/渠道对比 → ["channel"] (keep existing)
+
+IMPORTANT: Use exact English field names, NOT Chinese or mixed names!"""
+
+	@staticmethod
+	def get_metric_standardization() -> str:
+		"""指标标准化指导"""
+		return """
+
+METRIC STANDARDIZATION - CRITICAL for correct metric identification:
+- Always use STANDARD metric names from RAG context
+- If RAG context provides standard aliases (MAU, DAU, UV, PV), use them
+- Convert Chinese metric expressions to standard English abbreviations
+- NEVER use Chinese metric names in metric array
+
+EXAMPLES:
+- Input: "用户活跃度统计" + RAG context shows "MAU" → Output: metric=["MAU"]
+- Input: "月活跃用户分析" + RAG context shows "MAU" → Output: metric=["MAU"]  
+- Input: "独立访客" + RAG context shows "UV" → Output: metric=["UV"]
+- Input: "页面访问" + RAG context shows "PV" → Output: metric=["PV"]
+
+CRITICAL RULE: Always prioritize RAG context standard names over original Chinese terms!"""
+
+	@staticmethod
+	def get_quarter_specific_rules() -> str:
+		"""季度特定规则"""
+		return """
+QUARTER SPECIFIC:
+Q1 (第一季度) = "01,03" (Jan-Mar)
+Q2 (第二季度) = "04,06" (Apr-Jun)  
+Q3 (第三季度) = "07,09" (Jul-Sep)
+Q4 (第四季度) = "10,12" (Oct-Dec)
+
+CRITICAL SEMANTIC ANALYSIS:
+- For "第X季度指标汇总" (quarter summary): Do NOT add group_by
+- For "各季度指标对比" (quarter comparison): Add group_by=["quarter"]
+- For "季度内趋势分析" (quarter trend): Add group_by=["month"]
+
+EXAMPLES:
+- "2025年第二季度的MAU和UV对比" → NO group_by (quarter summary)
+- "2025年各季度的UV对比" → group_by=["quarter"] (quarter comparison)
+- "第3季度UV趋势" → group_by=["month"] (quarter trend)
+
+CRITICAL: For quarter analysis queries like "第3季度UV趋势":
+- Use time_filter with quarter range (e.g., "2025-07,2025-09")
+- Do NOT add group_by=["month"] - this creates monthly breakdown instead of quarter summary
+- Use aggregation without grouping for quarter totals
+- Only add group_by=["quarter"] if explicitly asking for quarter comparison"""
+
+	@staticmethod
+	def get_relative_time_mapping() -> str:
+		"""相对时间映射"""
+		return """
+RELATIVE TIME MAPPING:
+- 最近2个月 = "last_2_months" (format as range)
+- 今年 = "2025-01,2025-12"
+- 去年 = "2024-01,2024-12" 
+- 本月 = "2025-09"
+- 上月 = "2025-08"""
+
+	@staticmethod
+	def get_trend_analysis_rules() -> str:
+		"""趋势分析规则"""
+		return """
+TREND ANALYSIS: 
+- For monthly trends: Add group_by=["month"] 
+- For quarterly trends: Do NOT add group_by=["month"] - use aggregation instead
+- For yearly trends: Add group_by=["year"]
+- For quarter analysis queries: Use aggregation without grouping"""
+
+	@staticmethod
+	def build_system_prompt(query_type: dict) -> str:
+		"""根据查询类型动态构建系统提示词"""
+		base_rules = Q2QSystemPrompts.get_base_rules()
+		default_time_inference = Q2QSystemPrompts.get_default_time_inference()
+		group_by_mapping = Q2QSystemPrompts.get_group_by_mapping()
+		metric_standardization = Q2QSystemPrompts.get_metric_standardization()
+		
+		# 按需添加特定指导
+		focused_rules = ""
+		
+		if query_type.get('has_quarter', False):
+			focused_rules += Q2QSystemPrompts.get_quarter_specific_rules()
+		
+		if query_type.get('has_relative_time', False):
+			focused_rules += Q2QSystemPrompts.get_relative_time_mapping()
+		
+		if query_type.get('has_trend', False):
+			focused_rules += Q2QSystemPrompts.get_trend_analysis_rules()
+		
+		return f"{base_rules}{default_time_inference}{group_by_mapping}{metric_standardization}{focused_rules}\nAlways set confidence >= 0.8 for clear expressions."
+
+
+

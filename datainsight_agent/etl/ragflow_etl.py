@@ -8,7 +8,7 @@ from datainsight_agent.common.logging import get_logger
 from datainsight_agent.models.kb import KBEntity
 from datainsight_agent.config.settings import load_settings
 from datainsight_agent.clients.graph_client import LocalGraphClient
-from datainsight_agent.clients.vector_store import LocalHNSWVectorStore, EmbeddingModel
+from datainsight_agent.clients.vector_store import MilvusVectorStore, EmbeddingModel
 
 logger = get_logger(__name__)
 
@@ -60,6 +60,30 @@ def _entity_text(e: KBEntity) -> str:
 	return "\n".join([p for p in parts if p])
 
 
+def _upsert_milvus_vectors(entities: List[KBEntity], s) -> None:
+	"""Upsert entities to Milvus vector store."""
+	from datainsight_agent.clients.vector_store import MilvusVectorStore, EmbeddingModel
+	
+	embedder = EmbeddingModel()
+	ids = []
+	texts = []
+	metas = []
+	for e in entities:
+		ids.append(e.id)
+		texts.append(f"{e.canonical_name} {' '.join(e.aliases)}")
+		metas.append({
+			"id": e.id,
+			"canonical_name": e.canonical_name,
+			"aliases": e.aliases,
+			"type": e.type,
+		})
+	vectors = embedder.embed(texts)
+	actual_dim = len(vectors[0]) if vectors and len(vectors[0]) > 0 else int(s.vector_dim)
+	store = MilvusVectorStore(dim=actual_dim, space=str(s.vector_space))
+	store.add(ids=ids, vectors=vectors, metadatas=metas)
+	logger.info("milvus_upsert_done", count=len(ids), dim=actual_dim)
+
+
 def _build_hnsw_index(entities: List[KBEntity], dry_run: bool) -> None:
 	"""Build/update local HNSW vector index from KB entities."""
 	s = load_settings()
@@ -79,9 +103,9 @@ def _build_hnsw_index(entities: List[KBEntity], dry_run: bool) -> None:
 		})
 	vectors = embedder.embed(texts)
 	actual_dim = len(vectors[0]) if vectors and len(vectors[0]) > 0 else int(s.vector_dim)
-	store = LocalHNSWVectorStore(index_dir=Path(s.vector_index_dir), dim=actual_dim, space=str(s.vector_space))
+	store = MilvusVectorStore(dim=actual_dim, space=str(s.vector_space))
 	store.add(ids=ids, vectors=vectors, metadatas=metas)
-	logger.info("hnsw_upsert_done", count=len(ids), index_dir=s.vector_index_dir, dim=actual_dim)
+	logger.info("milvus_upsert_done", count=len(ids), dim=actual_dim)
 
 
 def run_ragflow_etl(source: Path, yes: bool = False, dry_run: bool = True) -> None:
@@ -117,12 +141,16 @@ def run_ragflow_etl(source: Path, yes: bool = False, dry_run: bool = True) -> No
 	except Exception as exc:
 		logger.info("hnsw_skip", error=str(exc))
 
-	# Placeholders for external stores: ES/Milvus/Neo4j are disabled by default
-	# When enabled in settings (future phases), implement conditional upserts here.
+	# Milvus vector store upsert
+	if getattr(s, "milvus_enabled", False):
+		if not dry_run:
+			_upsert_milvus_vectors(entities, s)
+		else:
+			logger.info("milvus_upsert_dry_run", count=len(entities))
+	
+	# Placeholders for external stores: ES/Neo4j are disabled by default
 	if getattr(s, "es_enabled", False):
 		logger.info("es_write_skip", reason="Phase1 placeholder; disabled or not implemented")
-	if getattr(s, "milvus_enabled", False):
-		logger.info("milvus_write_skip", reason="Phase1 placeholder; disabled or not implemented")
 	if getattr(s, "neo4j_enabled", False) and getattr(s, "graph_backend", "local") != "neo4j":
 		logger.info("neo4j_write_skip", reason="Phase1 placeholder; using local graph backend")
 

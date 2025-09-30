@@ -86,7 +86,7 @@ class Settings(BaseModel):
 
 	# Data warehouse/config-driven SQL defaults
 	warehouse_dialect: str = Field(default="sqlite")  # sqlite | mysql | postgres | clickhouse | ...
-	dw_table: str = Field(default="dws_user_activity_monthly")
+	dw_table: str = Field(default="dws_user_activity")
 	dw_time_column: str = Field(default="month")
 	dw_partition_column: str = Field(default="")  # optional
 	# DW semantic columns for enrichment (avoid hardcoding in code paths)
@@ -199,7 +199,7 @@ def load_settings(env_path: Optional[Path] = None) -> Settings:
 		milvus_password=os.getenv("MILVUS_PASSWORD"),
 		metric_enrichment_enabled=os.getenv("METRIC_ENRICHMENT_ENABLED", "0") not in {"0", "false", "False"},
 		warehouse_dialect=os.getenv("WAREHOUSE_DIALECT", "sqlite"),
-		dw_table=os.getenv("DW_TABLE", "dws_user_activity_monthly"),
+		dw_table=os.getenv("DW_TABLE", "dws_user_activity"),
 		dw_time_column=os.getenv("DW_TIME_COLUMN", "month"),
 		dw_partition_column=os.getenv("DW_PARTITION_COLUMN", ""),
 		dw_allowed_columns_csv=os.getenv("DW_ALLOWED_COLUMNS", ""),

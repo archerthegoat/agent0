@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import List, Any
+from typing import List
 import json as _json
 
 import typer
@@ -19,14 +19,14 @@ from datainsight_agent.common.logging import get_logger, configure_logging
 from datainsight_agent.config.settings import load_settings
 from datainsight_agent.etl.ragflow_etl import run_ragflow_etl
 from datainsight_agent.models.kb import KBEntity
-from datainsight_agent.services.db_bootstrap import init_sqlite_min, init_sqlite_dw_lite, init_mysql_min, init_postgresql_dw, init_clickhouse_dw
-from datainsight_agent.services.sql_generator import SQLGenerator
+from datainsight_agent.services.db_bootstrap import init_sqlite_min, init_sqlite_dw_lite, init_mysql_min, init_postgresql_dw
+from datainsight_agent.services.core.sql_generator import SQLGenerator
 from datainsight_agent.services.sql_validator import SQLValidator
 from datainsight_agent.services.llm import QwenClient
 from datainsight_agent.services.prompts import sql_preview_system, sql_preview_prompt, q2q_prompt
-from datainsight_agent.clients.vector_store import LocalHNSWVectorStore, EmbeddingModel
-from datainsight_agent.services.kb_vector_index import build_kb_vector_index
-from datainsight_agent.services.metric_retriever import build_metric_index
+from datainsight_agent.clients.vector_store import MilvusVectorStore, EmbeddingModel
+from datainsight_agent.services.core.kb_vector_index import build_kb_vector_index
+from datainsight_agent.services.registry.metric_retriever import build_metric_index
 
 
 # 动态获取项目名称
@@ -254,7 +254,7 @@ def db_init(db_path: Path = typer.Option(None, help="SQLite DB file path")) -> N
 def db_init_dw_lite(db_path: Path = typer.Option(None, help="SQLite DB file path")) -> None:
 	"""Initialize/widen local SQLite fact table with dimension columns and seed demo data.
 
-	Creates/overwrites `dws_user_activity_monthly` with columns:
+	Creates/overwrites `dws_user_activity` with columns:
 	- user_id TEXT, month TEXT, active INTEGER,
 	- channel_code TEXT, device TEXT, region TEXT, user_level TEXT, app_version TEXT, campaign TEXT
 	"""
@@ -300,10 +300,7 @@ def db_init_clickhouse(yes: bool = typer.Option(False, help="Confirm creating ta
 	Requires DATABASE_URL in .env (e.g., clickhouse://user:pass@host:9000/datainsight).
 	"""
 	s = setup_cli_command()
-	validate_command_params(require_confirmation=True, yes=yes, require_clickhouse=True, database_url=s.database_url)
-
-	init_clickhouse_dw(s.database_url)
-	print("[green]ClickHouse initialized and seeded.[/green]")
+	print("[yellow]ClickHouse initialization is not implemented yet. Skipping.[/yellow]")
 
 
 @app.command()
@@ -417,7 +414,7 @@ def db_seed_synthetic(
 	output: Path = typer.Option(Path("") , help="If provided, write NDJSON to this path instead of DB"),
 	use_llm: bool = typer.Option(True, help="Use model API to generate; fallback to local if unavailable"),
 ) -> None:
-	"""Generate synthetic rows for dws_user_activity_monthly using LLM (or local fallback).
+	"""Generate synthetic rows for dws_user_activity using LLM (or local fallback).
 
 	- Safe by default: preview-only unless --yes or --output is provided
 	- Requires DATABASE_URL and existing DW-lite schema when writing to DB
@@ -451,7 +448,7 @@ def db_seed_synthetic(
 	# quick schema probe
 	try:
 		with engine.connect() as conn:
-			res = conn.execute(text("PRAGMA table_info(dws_user_activity_monthly)"))
+			res = conn.execute(text("PRAGMA table_info(dws_user_activity)"))
 			cols = [row[1] for row in res.fetchall()]
 	except Exception as exc:
 		print(f"[red]Schema probe failed: {exc}[/red]")
@@ -464,7 +461,7 @@ def db_seed_synthetic(
 
 	insert_sql = text(
 		"""
-		INSERT INTO dws_user_activity_monthly (user_id, month, active, channel_code, device, region, user_level, app_version, campaign)
+		INSERT INTO dws_user_activity (user_id, month, active, channel_code, device, region, user_level, app_version, campaign)
 		VALUES (:user_id, :month, :active, :channel_code, :device, :region, :user_level, :app_version, :campaign)
 		"""
 	)
@@ -504,7 +501,7 @@ def rewrite(
 		try:
 			emb = EmbeddingModel()
 			vec = emb.embed([question])[0]
-			store = LocalHNSWVectorStore(index_dir=vdir, dim=len(vec), space=str(s.vector_space))
+			store = MilvusVectorStore(dim=len(vec), space=str(s.vector_space))
 			pairs = store.search([vec], top_k=top_k)[0]
 			id_to_entity = {e.id: e for e in entities}
 			for _id, dist in pairs:
@@ -611,7 +608,7 @@ def ir_run(
 
 	rows_count = None
 	if execute and s.database_url:
-		from datainsight_agent.services.sql_executor import SQLExecutor
+		from datainsight_agent.services.core.sql_executor import SQLExecutor
 		rows = SQLExecutor(s).execute(sql, limit=10)
 		rows_count = len(rows)
 		print("[green]Rows (up to 10):[/green]")
@@ -666,7 +663,7 @@ def metrics_index(
     print(f"[green]Metric index built:[/green] {n} vectors -> {target_path}")
     if show_stats:
         try:
-            store = LocalHNSWVectorStore(index_dir=target_path, dim=int(s.vector_dim), space=str(s.vector_space))
+            store = MilvusVectorStore(dim=int(s.vector_dim), space=str(s.vector_space))
             # crude count: read meta.jsonl lines
             meta = target_path / "meta.jsonl"
             cnt = 0
@@ -727,6 +724,7 @@ def sql_preview(
 	import os as _os
 	import sqlite3 as _sqlite3
 	from typing import List, Tuple
+	from datainsight_agent.services.llm import DeepseekClient
 	from datainsight_agent.models.kb import KBEntity
 
 	# Allowed columns: prefer config over probing
@@ -737,20 +735,6 @@ def sql_preview(
 	allowed_columns = ", ".join(all_cols)
 	kb_ctx = get_kb_context_for_sql_preview(question, top_k)
 	start_m, end_m = get_latest_year_range(str(db))
-
-	# 前置：使用 Q2Q 判断是否缺失关键信息（时间/指标）。缺失则直接返回 clarify，不在 sql-preview 里兜底。
-	try:
-		from datainsight_agent.services.q2q import Q2QRewriter as _Q2Q
-		_q2q = _Q2Q().rewrite(question, top_k=top_k)
-		if _q2q and (bool(getattr(_q2q, "clarify", False)) or not (_q2q.metric or []) or not getattr(_q2q, "time_filter", "")):
-			payload = {"plan": "clarify", "ask": (_q2q.ask or "请补充时间范围（YYYY-MM,YYYY-MM）和指标（如：MAU/UV/PV）。")}
-			if json_out:
-				print(_json.dumps(payload, ensure_ascii=False))
-			else:
-				print(payload["ask"])
-			return
-	except Exception:
-		pass
 
 	system = sql_preview_system()
 	prompt = sql_preview_prompt(
@@ -770,19 +754,6 @@ def sql_preview(
 	except Exception:
 		text = ""
 	text = (text or "").strip()
-	# Strip markdown code fences (e.g., ```sql ... ```)
-	if text.startswith("```"):
-		_t = text
-		# remove leading fence line
-		newline_pos = _t.find("\n")
-		if newline_pos != -1:
-			_t = _t[newline_pos + 1 :]
-		# remove trailing fence
-		if _t.rstrip().endswith("```"):
-			_t = _t.rstrip()[:-3]
-		text = _t.strip()
-
-
 	low = text.lower().strip()
 
 	# Unified printing via helper (no extra validation here)
@@ -927,10 +898,11 @@ def observe(
 			return True
 		import re as _re
 		return _re.match(r"^\d{4}-\d{2},\d{4}-\d{2}$", tf) is None
-def _question_has_explicit_time(q: str) -> bool:
-	import re as _re
-	q = (q or "").strip()
-	return _re.search(r"20\d{2}-\d{2}\s*(?:到|~|–|-|—|\.\.|,|，)\s*20\d{2}-\d{2}", q) is not None
+
+	def _question_has_explicit_time(q: str) -> bool:
+		import re as _re
+		q = (q or "").strip()
+		return _re.search(r"20\d{2}-\d{2}\s*(?:到|~|–|-|—|\.\.|,|，)\s*20\d{2}-\d{2}", q) is not None
 
 	if isinstance(rewrite_json, dict) and _needs_time_prompt(rewrite_json):
 		ask_msg = str(rewrite_json.get("ask") or "请补充时间范围（YYYY-MM,YYYY-MM）。")
@@ -985,7 +957,7 @@ def _question_has_explicit_time(q: str) -> bool:
 		rows_count = None
 		if execute and s.database_url:
 			try:
-				from datainsight_agent.services.sql_executor import SQLExecutor
+				from datainsight_agent.services.core.sql_executor import SQLExecutor
 				rows = SQLExecutor(s).execute(sql, limit=10)
 				rows_count = len(rows)
 			except Exception:

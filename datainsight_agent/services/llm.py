@@ -21,16 +21,12 @@ class QwenClient:
 	"""
 
 	def __init__(self, settings: Settings) -> None:
-		api_key = settings.openai_api_key or None
 		from os import getenv
-		# Prefer Qwen keys first, then fallback to OPENAI_API_KEY
-		api_key = (
-			getenv("QWEN_API_KEY")
-			or getenv("DASHSCOPE_API_KEY")
-			or api_key
-		)
+		# 只使用 Qwen API keys，不回退到 OpenAI
+		api_key = getenv("QWEN_API_KEY") or getenv("DASHSCOPE_API_KEY")
+		
 		if not api_key:
-			raise RuntimeError("No API key found for Qwen provider (set QWEN_API_KEY/DASHSCOPE_API_KEY/OPENAI_API_KEY)")
+			raise RuntimeError("No Qwen API key found (set QWEN_API_KEY or DASHSCOPE_API_KEY)")
 		# 使用配置化的API端点
 		from datainsight_agent.config.settings import load_settings
 		s = load_settings()

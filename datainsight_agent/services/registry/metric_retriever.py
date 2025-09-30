@@ -2,21 +2,25 @@ from __future__ import annotations
 
 from typing import List
 
-from datainsight_agent.services.metric_registry import MetricRegistry, MetricDef
+from datainsight_agent.services.registry.metric_registry import MetricRegistry, MetricDef
 from datainsight_agent.config.settings import load_settings
-from datainsight_agent.clients.vector_store import LocalHNSWVectorStore, EmbeddingModel
+from datainsight_agent.clients.vector_store import EmbeddingModel
+try:
+    from datainsight_agent.clients.vector_store import MilvusVectorStore
+except Exception:
+    MilvusVectorStore = None
 from pathlib import Path
 
 
 class MetricRetriever:
-    """度量检索：仅使用向量检索（HNSW），不再回退到模糊匹配。"""
+    """度量检索：仅使用向量检索（Milvus），不再回退到模糊匹配。"""
 
     def __init__(self) -> None:
         # 延迟加载优化
         self._registry = None
         self._metrics = None
         self._emb: EmbeddingModel | None = None
-        self._vec: LocalHNSWVectorStore | None = None
+        self._vec: MilvusVectorStore | None = None
         self._initialized = False
     
     def _ensure_initialized(self):
@@ -43,22 +47,24 @@ class MetricRetriever:
         
         self._metrics = MetricRetriever._shared_metrics
         
-        # Vector index (optional) - 优化：缓存embedding模型
+        # Vector index (Milvus) - 优化：缓存embedding模型
         try:
             s = load_settings()
-            vdir = Path(getattr(s, "metric_index_dir", "metric_index"))
-            if vdir.exists():
-                # 优化：缓存embedding模型
-                if not hasattr(MetricRetriever, '_shared_emb'):
-                    MetricRetriever._shared_emb = EmbeddingModel()
-                self._emb = MetricRetriever._shared_emb
-                
-                # 优化：缓存向量存储
-                if not hasattr(MetricRetriever, '_shared_vec'):
-                    dim = getattr(s, "vector_dim", 384)
-                    MetricRetriever._shared_vec = LocalHNSWVectorStore(index_dir=vdir, dim=int(dim), space=str(getattr(s, "vector_space", "ip")))
-                self._vec = MetricRetriever._shared_vec
-        except Exception:
+            if MilvusVectorStore is None:
+                raise RuntimeError("MilvusVectorStore not available. Please install pymilvus and ensure MILVUS_ENABLED=true")
+            
+            # 优化：缓存embedding模型
+            if not hasattr(MetricRetriever, '_shared_emb'):
+                MetricRetriever._shared_emb = EmbeddingModel()
+            self._emb = MetricRetriever._shared_emb
+            
+            # 优化：缓存向量存储
+            if not hasattr(MetricRetriever, '_shared_vec'):
+                dim = getattr(s, "vector_dim", 384)
+                MetricRetriever._shared_vec = MilvusVectorStore(dim=int(dim), space=str(getattr(s, "vector_space", "ip")))
+            self._vec = MetricRetriever._shared_vec
+        except Exception as e:
+            print(f"[ERROR] MetricRetriever initialization failed: {e}")
             self._emb = None
             self._vec = None
         
@@ -101,9 +107,12 @@ def build_metric_index(metadata_dir: str | Path = "metadata", index_dir: str | P
     """Build or rebuild a metric vector index from registry.
 
     - Embeds each metric using canonical_name + aliases joined as text
-    - Stores vectors in LocalHNSWVectorStore with meta-id = metric_id or canonical_name
+    - Stores vectors in MilvusVectorStore with meta-id = metric_id or canonical_name
     Returns number of indexed metrics.
     """
+    if MilvusVectorStore is None:
+        raise RuntimeError("MilvusVectorStore not available. Please install pymilvus and ensure MILVUS_ENABLED=true")
+    
     reg = MetricRegistry(metadata_dir)
     reg.load()
     # unique MetricDefs
@@ -129,7 +138,8 @@ def build_metric_index(metadata_dir: str | Path = "metadata", index_dir: str | P
     if not texts:
         return 0
     vectors = emb.embed(texts)
-    store = LocalHNSWVectorStore(index_dir=Path(index_dir), dim=len(vectors[0]), space="ip")
+    s = load_settings()
+    store = MilvusVectorStore(dim=len(vectors[0]), space=str(getattr(s, "vector_space", "ip")))
     store.add(ids=ids, vectors=vectors, metadatas=metas)
     return len(ids)
 

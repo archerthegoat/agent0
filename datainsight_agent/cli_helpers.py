@@ -119,7 +119,7 @@ def print_plan_ir_sql(final: Dict[str, Any], settings=None, validate: bool = Fal
 			print(val.explain)
 	rows_count = None
 	if execute and s.database_url and sql:
-		from datainsight_agent.services.sql_executor import SQLExecutor
+		from datainsight_agent.services.core.sql_executor import SQLExecutor
 		rows = SQLExecutor(s).execute(sql, limit=10)
 		print("[green]Rows (up to 10):[/green]")
 		for r in rows:
@@ -187,7 +187,7 @@ def validate_and_maybe_execute_inplace(final: Dict[str, Any], settings=None, val
 		final["validation"] = val.model_dump()
 		if execute and s.database_url:
 			try:
-				from datainsight_agent.services.sql_executor import SQLExecutor
+				from datainsight_agent.services.core.sql_executor import SQLExecutor
 				rows = SQLExecutor(s).execute(final["sql"], limit=10)
 				final["rows"] = rows
 			except Exception as exc:
@@ -287,7 +287,7 @@ def test_logging(message: str, log_path: Path = None) -> None:
 
 def generate_synthetic_data(rows: int, months: int, start_month: str, chunk_size: int, use_llm: bool) -> List[dict]:
 	"""Generate synthetic data rows using LLM or local fallback."""
-	from datainsight_agent.services.synthetic_data import (
+	from datainsight_agent.services.utils.synthetic_data import (
 		month_list as synth_month_list,
 		local_generate as synth_local_generate,
 		llm_generate as synth_llm_generate,
@@ -360,7 +360,7 @@ def entity_to_text(e: Any) -> str:
 def build_ir_from_metric(metric: str, group_by: str = "", month: str = "", settings: Any = None) -> Any:
 	"""Build SemanticQueryIR from metric, group_by, and optional month filter."""
 	from datainsight_agent.models.ir import SemanticQueryIR, SemanticAggregation, SemanticFilter
-	from datainsight_agent.services.metric_registry import MetricRegistry
+	from datainsight_agent.services.registry.metric_registry import MetricRegistry
 	
 	ir = SemanticQueryIR()
 	
@@ -434,7 +434,7 @@ def get_latest_year_range(db_path: str) -> tuple[str, str]:
 		# 使用配置化的表名
 		from datainsight_agent.config.settings import load_settings
 		s = load_settings()
-		table_name = s.dw_table or "dws_user_activity_monthly"
+		table_name = s.dw_table or "dws_user_activity"
 		mx = cur.execute(f"SELECT MAX(month) FROM {table_name}").fetchone()[0]
 		if not mx:
 			# 使用当前年份作为默认值
@@ -460,7 +460,7 @@ def probe_columns(db_path: str) -> List[str]:
 		# 使用配置化的表名
 		from datainsight_agent.config.settings import load_settings
 		s = load_settings()
-		table_name = s.dw_table or "dws_user_activity_monthly"
+		table_name = s.dw_table or "dws_user_activity"
 		rows = cur.execute(f"PRAGMA table_info({table_name})").fetchall()
 		return [r[1] for r in rows]
 	finally:
@@ -531,39 +531,34 @@ def print_task_results(res_map: Dict[str, Dict[str, Any]], metric_a: str, metric
 
 def perform_q2q_rewrite(question: str, top_k: int, settings: Any, show_prompt: bool = True) -> tuple[dict | None, str | None]:
 	"""Perform Q2Q rewrite using RAG context."""
-	from datainsight_agent.services.q2q import Q2QRewriter
+	from datainsight_agent.components.query_rewriter import QueryRewriter
 	from datainsight_agent.services.llm import QwenClient
 	from datainsight_agent.services.prompts import q2q_prompt
 	import json as _json
 	
-	q2q_rewriter = Q2QRewriter()
-	kb_context = q2q_rewriter._kb_context(question, top_k)
-	print(f"[cyan]RAG - dynamic KB context:[/cyan]")
-	print(kb_context)
-
-	rewrite_prompt = q2q_prompt(kb_context, question)
-	rewrite_json: dict | None = None
-	resp: str | None = None
+	# Use new component interface - it handles RAG context internally
+	q2q_rewriter = QueryRewriter()
+	result = q2q_rewriter.rewrite(question)
 	
-	try:
-		client = QwenClient(settings)
-		resp = client.generate_sql(rewrite_prompt)
-		try:
-			rewrite_json = _json.loads(resp)
-		except Exception:
-			rewrite_json = None
-	except Exception as exc:
-		resp = f"LLM error: {exc}"
-
-	if show_prompt:
-		print("[magenta]KB Context:[/magenta]")
-		print(kb_context)
-		print("[magenta]Prompt:[/magenta]")
-		print(rewrite_prompt)
-	print("[green]Rewrite result (raw):[/green]")
-	print(resp if rewrite_json is None else _json.dumps(rewrite_json, ensure_ascii=False))
+	print(f"[cyan]QueryRewrite results:[/cyan]")
+	print(f"Metrics: {result.metric}")
+	print(f"Time filter: {result.time_filter}")
+	print(f"Group by: {result.group_by}")
+	print(f"Clarify needed: {result.clarify}")
 	
-	return rewrite_json, resp
+	# Convert QueryRewrite to dict format for backward compatibility
+	rewrite_json = {
+		"metric": result.metric,
+		"time_filter": result.time_filter,
+		"group_by": result.group_by,
+		"clarify": result.clarify,
+		"concepts": getattr(result, 'concepts', [])
+	}
+	
+	print("[green]Rewrite result:[/green]")
+	print(_json.dumps(rewrite_json, ensure_ascii=False))
+	
+	return rewrite_json, _json.dumps(rewrite_json, ensure_ascii=False)
 
 
 def normalize_time_filter(tf: str, q: str) -> str:

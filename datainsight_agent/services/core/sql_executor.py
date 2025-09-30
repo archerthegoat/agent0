@@ -1,3 +1,9 @@
+"""
+LEGACY: Original SQL executor used by the pipeline.
+
+Bridged by the component `components.sql_generator.SQLExecutorComponent`.
+Prefer using the component interface in new code.
+"""
 from __future__ import annotations
 
 from typing import Any, List, Optional
