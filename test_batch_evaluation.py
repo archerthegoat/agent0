@@ -50,9 +50,9 @@ class TestResult:
     sql_generated: bool
     sql_executable: bool
     sql_correct: bool
-    time_parsed_correctly: bool
-    metric_identified_correctly: bool
-    group_by_correct: bool
+    time_parsed_correctly: Optional[bool]
+    metric_identified_correctly: Optional[bool]
+    group_by_correct: Optional[bool]
     result_complete: bool
     # RAG相关指标
     rag_recall_rate: Optional[float] = None
@@ -183,9 +183,9 @@ class BatchTestEvaluator:
                 sql_generated=False,
                 sql_executable=False,
                 sql_correct=False,
-                time_parsed_correctly=False,
-                metric_identified_correctly=False,
-                group_by_correct=False,
+                time_parsed_correctly=None,
+                metric_identified_correctly=None,
+                group_by_correct=None,
                 result_complete=False,
                 error_type=error_type,
                 error_message=error_message,
@@ -640,8 +640,27 @@ class BatchTestEvaluator:
         # 指标识别准确率（只对有预期指标的测试用例进行评估）
         metric_identified_correctly = None  # None表示未评估
         if test_case.expected_metrics:
-            actual_metrics = rewritten_query.metric or []
-            metric_identified_correctly = set(actual_metrics) == set(test_case.expected_metrics)
+            # 从Q2Q输出的指标名解析出标准指标定义
+            actual_metrics = []
+            try:
+                from datainsight_agent.services.registry.metric_registry import MetricRegistry
+                registry = MetricRegistry()
+                registry.load()  # 确保加载指标定义
+                
+                for q2q_metric in (rewritten_query.metric or []):
+                    metric_def = registry.resolve_from_signals([q2q_metric])
+                    if metric_def and metric_def.aggregation.get('alias'):
+                        actual_metrics.append(metric_def.aggregation['alias'])
+                
+                print(f"[DEBUG] Expected metrics: {test_case.expected_metrics}, Q2Q metrics: {rewritten_query.metric}, Actual metrics from registry: {actual_metrics}")
+                metric_identified_correctly = set(actual_metrics) == set(test_case.expected_metrics)
+                print(f"[DEBUG] Metric match result: {metric_identified_correctly}")
+            except Exception as e:
+                print(f"[DEBUG] Error resolving metrics: {e}")
+                # Fallback to direct comparison if registry fails
+                actual_metrics = rewritten_query.metric or []
+                print(f"[DEBUG] Using fallback: Expected metrics: {test_case.expected_metrics}, Actual metrics: {actual_metrics}")
+                metric_identified_correctly = set(actual_metrics) == set(test_case.expected_metrics)
         
         # 分组字段准确率（只对有预期分组字段的测试用例进行评估）
         group_by_correct = None  # None表示未评估
