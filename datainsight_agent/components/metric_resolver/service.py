@@ -5,7 +5,7 @@ from typing import List
 from datainsight_agent.core.interfaces import MetricResolverInterface
 
 # Bridge to existing parsing pipeline
-from datainsight_agent.services.metric_parser import MetricParser
+from datainsight_agent.services.parsers.metric_parser import MetricParser
 
 
 class MetricResolver(MetricResolverInterface):

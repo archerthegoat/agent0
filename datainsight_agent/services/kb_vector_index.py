@@ -13,7 +13,7 @@ try:
 except Exception:
     MilvusVectorStore = None
 from datainsight_agent.services.metric_registry import MetricRegistry
-from datainsight_agent.services.auth import KnowledgeBaseAuth
+from datainsight_agent.services.utils.auth import KnowledgeBaseAuth
 
 
 @dataclass

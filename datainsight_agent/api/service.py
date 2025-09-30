@@ -6,9 +6,10 @@ API服务层
 
 from typing import Dict, Any, Optional
 from datainsight_agent.orchestrator.li.pipeline import LIPipeline
-from datainsight_agent.components.query_rewriter import QueryRewriter
-from datainsight_agent.components.time_parser import TimeParser
-from datainsight_agent.components.sql_generator import SQLGeneratorComponent, SQLExecutorComponent
+from datainsight_agent.services.core.query_rewriter import OptimizedQ2QRewriter as QueryRewriter
+from datainsight_agent.services.parsers.time_filter_parser import TimeFilterParser as TimeParser
+from datainsight_agent.services.core.sql_generator import SQLGenerator as SQLGeneratorComponent
+from datainsight_agent.services.core.sql_executor import SQLExecutor as SQLExecutorComponent
 from datainsight_agent.config.settings import load_settings
 from datainsight_agent.common.logging import get_logger
 from .models import QueryRequest, QueryResponse, PlanResponse
