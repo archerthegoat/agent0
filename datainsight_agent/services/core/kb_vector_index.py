@@ -308,23 +308,31 @@ class KBVectorRetriever:
         try:
             # 1. 先尝试精确匹配
             exact_matches = self._exact_metric_match(query)
-            if exact_matches:
-                print(f"[INFO] 精确匹配找到 {len(exact_matches)} 个指标")
-                return exact_matches
             
-            # 2. 精确匹配失败，使用向量搜索
-            print(f"[INFO] 精确匹配失败，使用向量搜索")
+            # 2. 无论精确匹配是否成功，都进行向量搜索以增加类型多样性
+            print(f"[INFO] 精确匹配找到 {len(exact_matches)} 个指标，继续向量搜索增加类型多样性")
             
             # 生成查询向量
             query_vector = self._embedder.embed([query])[0]
             
-            # 向量搜索
-            results = self._vector_store.search([query_vector], top_k=top_k)[0]
+            # 增加检索数量，确保类型多样性
+            search_k = max(top_k * 3, 15)  # 检索更多候选，提高类型覆盖
+            results = self._vector_store.search([query_vector], top_k=search_k)[0]
             
             # 过滤出指标和维度，并标准化alias（设置严格相似度阈值）
             topics_and_metrics = []
-            min_similarity_threshold = 0.55  # 降低阈值，提高检索覆盖率
+            min_similarity_threshold = 0.45  # 进一步降低阈值，提高检索覆盖率
             
+            # 按类型分组，确保类型多样性
+            type_groups = {'metric': [], 'dimension': [], 'mapping': [], 'concept': []}
+            
+            # 首先添加精确匹配的结果
+            for match in exact_matches:
+                entity_type = match.get('entity_type', 'metric')
+                if entity_type in type_groups:
+                    type_groups[entity_type].append(match)
+            
+            # 然后添加向量搜索结果
             for entity_id, score in results:
                 metadata = self._get_entity_metadata(entity_id)
                 if not metadata:
@@ -339,14 +347,39 @@ class KBVectorRetriever:
                     # 标准化指标名称
                     standardized_metadata = self._standardize_metric_metadata(metadata)
                     
-                    topics_and_metrics.append({
+                    fragment = {
                         "entity_id": entity_id,
                         "entity_type": entity_type,
                         "score": float(score),
                         "metadata": standardized_metadata
-                    })
+                    }
+                    
+                    # 避免重复添加（精确匹配已经添加的）
+                    if not any(f.get('entity_id') == entity_id for f in type_groups[entity_type]):
+                        type_groups[entity_type].append(fragment)
             
-            return topics_and_metrics
+            # 从每个类型组中选择最佳结果，确保类型多样性
+            for entity_type, fragments in type_groups.items():
+                if fragments:
+                    # 按分数排序，选择前2个
+                    fragments.sort(key=lambda x: x['score'], reverse=True)
+                    topics_and_metrics.extend(fragments[:2])
+            
+            # 如果结果不足，补充其他类型的结果
+            if len(topics_and_metrics) < top_k:
+                all_fragments = []
+                for fragments in type_groups.values():
+                    all_fragments.extend(fragments)
+                
+                # 按分数排序，补充剩余位置
+                all_fragments.sort(key=lambda x: x['score'], reverse=True)
+                for fragment in all_fragments:
+                    if fragment not in topics_and_metrics and len(topics_and_metrics) < top_k:
+                        topics_and_metrics.append(fragment)
+            
+            # 最终按分数排序
+            topics_and_metrics.sort(key=lambda x: x['score'], reverse=True)
+            return topics_and_metrics[:top_k]
         except Exception as e:
             # 避免编码问题，使用安全的错误处理
             try:

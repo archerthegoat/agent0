@@ -182,5 +182,77 @@
     "type": "dimension",
     "what": {"description": "访问时段(如早高峰、午休、晚高峰、深夜)，用于用户行为分析。"},
     "how": {"data_source": {"layer": "DIM", "table": "dim_time_period", "column": "time_period"}}
+  },
+  {
+    "id": "dim_page_type",
+    "canonical_name": "页面类型",
+    "aliases": ["page_type", "页面类型", "页面分类", "页面类别"],
+    "type": "dimension",
+    "what": {"description": "页面类型分类(如首页、商品页、详情页、搜索页)，用于页面效果分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_page_type", "column": "page_type"}}
+  },
+  {
+    "id": "dim_user_segment",
+    "canonical_name": "用户分群",
+    "aliases": ["user_segment", "用户分群", "用户群体", "用户标签"],
+    "type": "dimension",
+    "what": {"description": "用户分群标签(如新用户、老用户、高价值用户、流失用户)，用于用户行为分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_user_segment", "column": "user_segment"}}
+  },
+  {
+    "id": "dim_product_category",
+    "canonical_name": "商品类别",
+    "aliases": ["product_category", "商品类别", "产品分类", "品类"],
+    "type": "dimension",
+    "what": {"description": "商品类别分类(如服装、数码、家居、食品)，用于商品销售分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_product_category", "column": "product_category"}}
+  },
+  {
+    "id": "dim_payment_method",
+    "canonical_name": "支付方式",
+    "aliases": ["payment_method", "支付方式", "付款方式", "支付渠道"],
+    "type": "dimension",
+    "what": {"description": "支付方式分类(如支付宝、微信、银行卡、现金)，用于支付行为分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_payment_method", "column": "payment_method"}}
+  },
+  {
+    "id": "dim_order_status",
+    "canonical_name": "订单状态",
+    "aliases": ["order_status", "订单状态", "交易状态", "订单阶段"],
+    "type": "dimension",
+    "what": {"description": "订单状态分类(如待支付、已支付、已发货、已完成)，用于订单流程分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_order_status", "column": "order_status"}}
+  },
+  {
+    "id": "dim_delivery_method",
+    "canonical_name": "配送方式",
+    "aliases": ["delivery_method", "配送方式", "物流方式", "配送类型"],
+    "type": "dimension",
+    "what": {"description": "配送方式分类(如快递、自提、同城配送、次日达)，用于物流分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_delivery_method", "column": "delivery_method"}}
+  },
+  {
+    "id": "dim_marketing_source",
+    "canonical_name": "营销来源",
+    "aliases": ["marketing_source", "营销来源", "推广来源", "获客渠道"],
+    "type": "dimension",
+    "what": {"description": "营销来源分类(如搜索引擎、社交媒体、广告投放、口碑推荐)，用于营销效果分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_marketing_source", "column": "marketing_source"}}
+  },
+  {
+    "id": "dim_user_vip_level",
+    "canonical_name": "VIP等级",
+    "aliases": ["user_vip_level", "VIP等级", "会员等级", "用户等级"],
+    "type": "dimension",
+    "what": {"description": "VIP等级分类(如普通、银牌、金牌、钻石)，用于会员价值分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_user_vip_level", "column": "user_vip_level"}}
+  },
+  {
+    "id": "dim_ab_bucket",
+    "canonical_name": "AB测试分组",
+    "aliases": ["ab_bucket", "AB测试分组", "实验分组", "测试组"],
+    "type": "dimension",
+    "what": {"description": "AB测试分组标识(如对照组、实验组A、实验组B)，用于实验效果分析。"},
+    "how": {"data_source": {"layer": "DIM", "table": "dim_ab_bucket", "column": "ab_bucket"}}
   }
 ]

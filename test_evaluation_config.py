@@ -68,5 +68,14 @@ MOCK_DATA_CONFIG = {
     'entity_id_prefix': 'mock_'
 }
 
-# 期望的实体类型
+# 期望的实体类型（根据问题类型动态调整）
 EXPECTED_ENTITY_TYPES = ['metric', 'dimension', 'mapping']
+
+# 问题类型与期望实体类型的映射
+QUESTION_TYPE_ENTITY_MAPPING = {
+    'metric_query': ['metric'],  # 纯指标查询
+    'dimension_query': ['dimension'],  # 维度分析查询
+    'mapping_query': ['mapping'],  # 映射关系查询
+    'mixed_query': ['metric', 'dimension'],  # 混合查询
+    'comprehensive_query': ['metric', 'dimension', 'mapping']  # 综合查询
+}
