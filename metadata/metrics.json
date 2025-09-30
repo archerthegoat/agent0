@@ -10,6 +10,7 @@
       "活跃用户",
       "活跃用户数",
       "active_users",
+      "mau",
       "monthly_active_users"
     ],
     "type": "metric",
@@ -239,7 +240,9 @@
       "营收",
       "GMV",
       "交易额",
-      "营收额"
+      "营收额",
+      "avg_revenue",
+      "平均收入"
     ],
     "aggregation": {
       "function": "SUM",
@@ -261,7 +264,12 @@
     "aggregation": {
       "function": "COUNT",
       "field": "DISTINCT order_id",
-      "alias": "order_count"
+      "alias": "orders"
+    },
+    "table_mapping": {
+      "table_name": "dws_orders",
+      "time_field": "order_date",
+      "time_format": "YYYY-MM-DD"
     },
     "filters": [],
     "type": "metric"
@@ -346,6 +354,11 @@
       "field": "order_amount",
       "alias": "gmv"
     },
+    "table_mapping": {
+      "table_name": "dws_orders",
+      "time_field": "order_date",
+      "time_format": "YYYY-MM-DD"
+    },
     "filters": [],
     "type": "metric"
   },
@@ -363,6 +376,11 @@
       "function": "AVG",
       "field": "order_amount",
       "alias": "aov"
+    },
+    "table_mapping": {
+      "table_name": "dws_orders",
+      "time_field": "order_date",
+      "time_format": "YYYY-MM-DD"
     },
     "filters": [],
     "type": "metric"

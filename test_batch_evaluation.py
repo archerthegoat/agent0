@@ -788,6 +788,14 @@ class BatchTestEvaluator:
         # 使用权重计算概念覆盖率
         knowledge_completeness = self._calculate_concept_coverage_with_weights(rag_fragments, list(expected_types))
         
+        # 概念覆盖率提升策略：如果覆盖率低于70%，尝试补充缺失类型
+        if knowledge_completeness < 0.70 and len(rag_fragments) > 0:
+            print(f"[DEBUG] 概念覆盖率较低({knowledge_completeness:.2%})，尝试补充缺失类型")
+            retrieved_types = set(f.get('entity_type', '') for f in rag_fragments)
+            missing_types = set(expected_types) - retrieved_types
+            print(f"[DEBUG] 缺失类型: {missing_types}")
+            # 这里可以触发额外的检索逻辑来补充缺失类型
+        
         return {
             'semantic_relevance': semantic_relevance,
             'fragment_quality': fragment_quality,
@@ -923,52 +931,108 @@ class BatchTestEvaluator:
         if len(actual_normalized) != len(expected_normalized):
             return False
         
+        # 对结果进行排序以确保顺序一致性
+        actual_sorted = self._sort_result_rows(actual_normalized)
+        expected_sorted = self._sort_result_rows(expected_normalized)
+        
         # 比较每行数据
-        for actual_row, expected_row in zip(actual_normalized, expected_normalized):
+        for actual_row, expected_row in zip(actual_sorted, expected_sorted):
             if not self._compare_row(actual_row, expected_row):
                 return False
         
         return True
     
-    def _normalize_result(self, result: List[Dict]) -> List[Dict]:
+    def _normalize_result(self, result: List) -> List:
         """标准化查询结果"""
+        # 如果结果是元组列表，直接返回
+        if result and isinstance(result[0], tuple):
+            return result
+        
+        # 如果结果是字典列表，进行标准化
         normalized = []
         for row in result:
-            normalized_row = {}
-            for key, value in row.items():
-                # 标准化键名（小写）
-                normalized_key = key.lower().strip()
-                # 标准化值
-                if isinstance(value, str):
-                    normalized_value = value.strip()
-                elif isinstance(value, (int, float)):
-                    normalized_value = float(value)
-                else:
-                    normalized_value = value
-                normalized_row[normalized_key] = normalized_value
-            normalized.append(normalized_row)
+            if isinstance(row, dict):
+                normalized_row = {}
+                for key, value in row.items():
+                    # 标准化键名（小写）
+                    normalized_key = key.lower().strip()
+                    # 标准化值
+                    if isinstance(value, str):
+                        normalized_value = value.strip()
+                    elif isinstance(value, (int, float)):
+                        normalized_value = float(value)
+                    else:
+                        normalized_value = value
+                    normalized_row[normalized_key] = normalized_value
+                normalized.append(normalized_row)
+            else:
+                # 其他类型直接添加
+                normalized.append(row)
         return normalized
     
-    def _compare_row(self, actual_row: Dict, expected_row: Dict) -> bool:
-        """比较单行数据"""
-        # 比较键
-        if set(actual_row.keys()) != set(expected_row.keys()):
-            return False
+    def _sort_result_rows(self, result_rows: List) -> List:
+        """对结果行进行排序以确保比较的一致性"""
+        if not result_rows:
+            return result_rows
         
-        # 比较值
-        for key in actual_row.keys():
-            actual_value = actual_row[key]
-            expected_value = expected_row[key]
+        # 如果是字典列表，按所有键值对排序
+        if isinstance(result_rows[0], dict):
+            def sort_key(row):
+                # 创建排序键：将所有键值对转换为字符串并排序
+                return tuple(sorted(f"{k}:{v}" for k, v in row.items()))
             
-            # 数值比较（允许小的浮点误差）
-            if isinstance(actual_value, (int, float)) and isinstance(expected_value, (int, float)):
-                if abs(float(actual_value) - float(expected_value)) > 1e-6:
-                    return False
-            # 字符串比较
-            elif str(actual_value).strip() != str(expected_value).strip():
-                return False
+            return sorted(result_rows, key=sort_key)
         
-        return True
+        # 如果是元组列表，按元组内容排序
+        elif isinstance(result_rows[0], tuple):
+            return sorted(result_rows)
+        
+        # 其他情况直接返回
+        return result_rows
+    
+    def _compare_row(self, actual_row, expected_row) -> bool:
+        """比较单行数据"""
+        # 如果都是元组，直接比较
+        if isinstance(actual_row, tuple) and isinstance(expected_row, tuple):
+            if len(actual_row) != len(expected_row):
+                return False
+            
+            for actual_value, expected_value in zip(actual_row, expected_row):
+                # 数值比较（允许小的浮点误差，支持 Decimal 类型）
+                from decimal import Decimal
+                if isinstance(actual_value, (int, float, Decimal)) and isinstance(expected_value, (int, float, Decimal)):
+                    if abs(float(actual_value) - float(expected_value)) > 1e-6:
+                        return False
+                # 字符串比较
+                elif str(actual_value).strip() != str(expected_value).strip():
+                    return False
+            return True
+        
+        # 如果都是字典，按原逻辑比较
+        elif isinstance(actual_row, dict) and isinstance(expected_row, dict):
+            # 比较键
+            if set(actual_row.keys()) != set(expected_row.keys()):
+                return False
+            
+            # 比较值
+            for key in actual_row.keys():
+                actual_value = actual_row[key]
+                expected_value = expected_row[key]
+                
+                # 数值比较（允许小的浮点误差，支持 Decimal 类型）
+                from decimal import Decimal
+                if isinstance(actual_value, (int, float, Decimal)) and isinstance(expected_value, (int, float, Decimal)):
+                    if abs(float(actual_value) - float(expected_value)) > 1e-6:
+                        return False
+                # 字符串比较
+                elif str(actual_value).strip() != str(expected_value).strip():
+                    return False
+            
+            return True
+        
+        # 其他情况直接比较
+        else:
+            return actual_row == expected_row
     
     def run_batch_test(self) -> Dict[str, Any]:
         """运行批量测试"""

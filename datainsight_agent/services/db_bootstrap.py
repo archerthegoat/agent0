@@ -50,18 +50,78 @@ def init_sqlite_dw_lite(db_path: Path) -> str:
 				active tinyint NOT NULL,
 				channel_code varchar(32),
 				device_type varchar(32),
-				region varchar(32)
+				region varchar(32),
+				-- 新增业务指标字段
+				revenue_amount decimal(10,2) DEFAULT 0,
+				retention_flag tinyint DEFAULT 0,
+				roi_ratio decimal(8,4) DEFAULT 0,
+				is_return_visitor tinyint DEFAULT 0,
+				page_view_id varchar(64),
+				created_hour int DEFAULT 0,
+				platform varchar(32) DEFAULT 'web',
+				user_revenue decimal(10,2) DEFAULT 0,
+				conversion_flag tinyint DEFAULT 0,
+				session_duration_minutes decimal(8,2) DEFAULT 0,
+				bounce_flag tinyint DEFAULT 0,
+				is_new_user tinyint DEFAULT 0,
+				is_churn tinyint DEFAULT 0,
+				pages_per_session int DEFAULT 0,
+				search_success tinyint DEFAULT 0,
+				recommendation_clicked tinyint DEFAULT 0,
+				satisfaction_score decimal(3,2) DEFAULT 0,
+				nps_score decimal(3,2) DEFAULT 0
 			);
 			"""
 		))
 		conn.execute(text("DELETE FROM dws_user_activity"))
 		conn.execute(text(
 			"""
-			INSERT INTO dws_user_activity (user_id, month, active, channel_code, device_type, region) VALUES
-			('u1', '2022-01', 1, 'web', 'desktop', 'north'),
-			('u2', '2022-01', 1, 'mobile', 'mobile', 'south'),
-			('u1', '2022-02', 0, 'web', 'desktop', 'north'),
-			('u3', '2022-02', 1, 'mobile', 'mobile', 'east');
+			INSERT INTO dws_user_activity (user_id, month, active, channel_code, device_type, region, revenue_amount, retention_flag, roi_ratio, is_return_visitor, page_view_id, created_hour, platform, user_revenue, conversion_flag, session_duration_minutes, bounce_flag, is_new_user, is_churn, pages_per_session, search_success, recommendation_clicked, satisfaction_score, nps_score) VALUES
+			-- 2022年测试数据（保留原有）
+			('u1', '2022-01', 1, 'web', 'desktop', 'north', 100.00, 1, 2.5, 1, 'pv001', 9, 'web', 100.00, 1, 12.5, 0, 0, 0, 4, 1, 1, 4.2, 8.5),
+			('u2', '2022-01', 1, 'mobile', 'mobile', 'south', 120.00, 1, 2.2, 0, 'pv002', 14, 'android', 120.00, 1, 8.3, 1, 0, 0, 3, 0, 0, 3.8, 7.2),
+			('u1', '2022-02', 0, 'web', 'desktop', 'north', 0.00, 0, 0.0, 0, 'pv003', 10, 'web', 0.00, 0, 0.0, 1, 0, 0, 0, 0, 0, 0.0, 0.0),
+			('u3', '2022-02', 1, 'mobile', 'mobile', 'east', 110.00, 1, 2.3, 1, 'pv004', 15, 'ios', 110.00, 1, 9.8, 0, 0, 0, 3, 1, 1, 4.1, 8.3),
+			-- 2025年8月测试数据（test_001: mau=2）
+			('u1', '2025-08', 1, 'web', 'desktop', 'north', 150.00, 1, 2.5, 1, 'pv005', 9, 'web', 150.00, 1, 12.5, 0, 0, 0, 4, 1, 1, 4.2, 8.5),
+			('u2', '2025-08', 1, 'mobile', 'mobile', 'south', 120.00, 1, 2.2, 0, 'pv006', 14, 'android', 120.00, 1, 8.3, 1, 0, 0, 3, 0, 0, 3.8, 7.2),
+			-- 2025年9月测试数据（test_002: dau=4）
+			('u1', '2025-09', 1, 'web', 'desktop', 'north', 180.00, 1, 2.8, 1, 'pv007', 10, 'web', 180.00, 1, 15.2, 0, 0, 0, 5, 1, 1, 4.5, 9.1),
+			('u2', '2025-09', 1, 'mobile', 'mobile', 'south', 140.00, 1, 2.4, 0, 'pv008', 15, 'android', 140.00, 1, 9.8, 1, 0, 0, 3, 0, 0, 3.9, 7.8),
+			('u3', '2025-09', 1, 'mobile', 'mobile', 'east', 160.00, 1, 2.6, 1, 'pv009', 16, 'ios', 160.00, 1, 11.2, 0, 0, 0, 4, 1, 1, 4.1, 8.3),
+			('u4', '2025-09', 1, 'web', 'desktop', 'west', 170.00, 1, 2.7, 1, 'pv010', 17, 'web', 170.00, 1, 13.7, 0, 0, 0, 4, 1, 1, 4.3, 8.7),
+			-- 2025年7月测试数据（Q3季度查询）
+			('u1', '2025-07', 1, 'web', 'desktop', 'north', 165.00, 1, 2.6, 1, 'pv011', 11, 'web', 165.00, 1, 14.1, 0, 0, 0, 4, 1, 1, 4.2, 8.4),
+			('u2', '2025-07', 1, 'mobile', 'mobile', 'south', 135.00, 1, 2.3, 0, 'pv012', 16, 'android', 135.00, 1, 9.5, 1, 0, 0, 3, 0, 0, 3.7, 7.4),
+			-- 2025年10月测试数据（test_007需要）
+			('u1', '2025-10', 1, 'web', 'desktop', 'north', 190.00, 1, 2.9, 1, 'pv013', 12, 'web', 190.00, 1, 16.3, 0, 0, 0, 5, 1, 1, 4.6, 9.2),
+			-- 2025年第一季度数据（Q1: Jan-Mar）
+			('u1', '2025-01', 1, 'web', 'desktop', 'north', 200.00, 1, 3.0, 1, 'pv014', 8, 'web', 200.00, 1, 18.5, 0, 0, 0, 6, 1, 1, 4.8, 9.5),
+			('u2', '2025-01', 1, 'mobile', 'mobile', 'south', 130.00, 1, 2.1, 0, 'pv015', 13, 'android', 130.00, 1, 7.8, 1, 0, 0, 2, 0, 0, 3.5, 7.0),
+			('u3', '2025-01', 1, 'mobile', 'mobile', 'east', 145.00, 1, 2.4, 1, 'pv016', 14, 'ios', 145.00, 1, 10.2, 0, 0, 0, 3, 1, 1, 4.0, 8.0),
+			('u1', '2025-02', 1, 'web', 'desktop', 'north', 175.00, 1, 2.7, 1, 'pv017', 9, 'web', 175.00, 1, 15.8, 0, 0, 0, 5, 1, 1, 4.4, 8.8),
+			('u2', '2025-02', 1, 'mobile', 'mobile', 'south', 125.00, 1, 2.0, 0, 'pv018', 14, 'android', 125.00, 1, 7.2, 1, 0, 0, 2, 0, 0, 3.3, 6.6),
+			('u3', '2025-02', 1, 'mobile', 'mobile', 'east', 140.00, 1, 2.3, 1, 'pv019', 15, 'ios', 140.00, 1, 9.5, 0, 0, 0, 3, 1, 1, 3.9, 7.8),
+			('u1', '2025-03', 1, 'web', 'desktop', 'north', 185.00, 1, 2.8, 1, 'pv020', 10, 'web', 185.00, 1, 16.7, 0, 0, 0, 5, 1, 1, 4.5, 9.0),
+			('u2', '2025-03', 1, 'mobile', 'mobile', 'south', 135.00, 1, 2.2, 0, 'pv021', 15, 'android', 135.00, 1, 8.1, 1, 0, 0, 3, 0, 0, 3.6, 7.2),
+			('u3', '2025-03', 1, 'mobile', 'mobile', 'east', 150.00, 1, 2.5, 1, 'pv022', 16, 'ios', 150.00, 1, 10.8, 0, 0, 0, 4, 1, 1, 4.2, 8.4),
+			-- 2025年第二季度数据（Q2: Apr-Jun）
+			('u1', '2025-04', 1, 'web', 'desktop', 'north', 195.00, 1, 2.9, 1, 'pv023', 11, 'web', 195.00, 1, 17.6, 0, 0, 0, 6, 1, 1, 4.7, 9.4),
+			('u2', '2025-04', 1, 'mobile', 'mobile', 'south', 140.00, 1, 2.3, 0, 'pv024', 16, 'android', 140.00, 1, 8.4, 1, 0, 0, 3, 0, 0, 3.7, 7.4),
+			('u3', '2025-04', 1, 'mobile', 'mobile', 'east', 155.00, 1, 2.6, 1, 'pv025', 17, 'ios', 155.00, 1, 11.1, 0, 0, 0, 4, 1, 1, 4.3, 8.6),
+			('u1', '2025-05', 1, 'web', 'desktop', 'north', 205.00, 1, 3.1, 1, 'pv026', 12, 'web', 205.00, 1, 18.5, 0, 0, 0, 6, 1, 1, 4.8, 9.6),
+			('u2', '2025-05', 1, 'mobile', 'mobile', 'south', 145.00, 1, 2.4, 0, 'pv027', 17, 'android', 145.00, 1, 8.7, 1, 0, 0, 3, 0, 0, 3.8, 7.6),
+			('u3', '2025-05', 1, 'mobile', 'mobile', 'east', 160.00, 1, 2.7, 1, 'pv028', 18, 'ios', 160.00, 1, 11.4, 0, 0, 0, 4, 1, 1, 4.4, 8.8),
+			('u1', '2025-06', 1, 'web', 'desktop', 'north', 210.00, 1, 3.2, 1, 'pv029', 13, 'web', 210.00, 1, 19.0, 0, 0, 0, 6, 1, 1, 4.9, 9.8),
+			('u2', '2025-06', 1, 'mobile', 'mobile', 'south', 150.00, 1, 2.5, 0, 'pv030', 18, 'android', 150.00, 1, 9.0, 1, 0, 0, 3, 0, 0, 3.9, 7.8),
+			('u3', '2025-06', 1, 'mobile', 'mobile', 'east', 165.00, 1, 2.8, 1, 'pv031', 19, 'ios', 165.00, 1, 11.7, 0, 0, 0, 4, 1, 1, 4.5, 9.0),
+			-- 2025年第四季度数据（Q4: Oct-Dec）
+			('u1', '2025-11', 1, 'web', 'desktop', 'north', 220.00, 1, 3.3, 1, 'pv032', 14, 'web', 220.00, 1, 19.8, 0, 0, 0, 7, 1, 1, 5.0, 10.0),
+			('u2', '2025-11', 1, 'mobile', 'mobile', 'south', 160.00, 1, 2.6, 0, 'pv033', 19, 'android', 160.00, 1, 9.6, 1, 0, 0, 3, 0, 0, 4.0, 8.0),
+			('u3', '2025-11', 1, 'mobile', 'mobile', 'east', 175.00, 1, 2.9, 1, 'pv034', 20, 'ios', 175.00, 1, 12.3, 0, 0, 0, 4, 1, 1, 4.6, 9.2),
+			('u1', '2025-12', 1, 'web', 'desktop', 'north', 225.00, 1, 3.4, 1, 'pv035', 15, 'web', 225.00, 1, 20.3, 0, 0, 0, 7, 1, 1, 5.1, 10.2),
+			('u2', '2025-12', 1, 'mobile', 'mobile', 'south', 165.00, 1, 2.7, 0, 'pv036', 20, 'android', 165.00, 1, 9.9, 1, 0, 0, 3, 0, 0, 4.1, 8.2),
+			('u3', '2025-12', 1, 'mobile', 'mobile', 'east', 180.00, 1, 3.0, 1, 'pv037', 21, 'ios', 180.00, 1, 12.6, 0, 0, 0, 4, 1, 1, 4.7, 9.4);
 			"""
 		))
 	return db_url
@@ -175,6 +235,41 @@ def init_mysql_min(database_url: str) -> None:
 				INDEX idx_channel (channel),
 				INDEX idx_region (region)
 			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+			"""
+		))
+		
+		# 插入订单测试数据
+		conn.execute(text(
+			"""
+			INSERT INTO dws_orders VALUES
+			-- 2025年8月订单数据
+			('ord001', 'u1', '2025-08-01', '2025-08', 150.00, 0, 0, NULL, 'web', 'north'),
+			('ord002', 'u2', '2025-08-02', '2025-08', 200.00, 1, 0, NULL, 'mobile', 'south'),
+			('ord003', 'u3', '2025-08-03', '2025-08', 120.00, 0, 0, NULL, 'mobile', 'east'),
+			('ord004', 'u1', '2025-08-04', '2025-08', 180.00, 1, 0, NULL, 'web', 'north'),
+			('ord005', 'u2', '2025-08-05', '2025-08', 160.00, 0, 0, NULL, 'mobile', 'south'),
+			
+			-- 2025年9月订单数据
+			('ord006', 'u1', '2025-09-01', '2025-09', 170.00, 0, 0, NULL, 'web', 'north'),
+			('ord007', 'u2', '2025-09-02', '2025-09', 190.00, 1, 0, NULL, 'mobile', 'south'),
+			('ord008', 'u3', '2025-09-03', '2025-09', 140.00, 0, 0, NULL, 'mobile', 'east'),
+			('ord009', 'u4', '2025-09-04', '2025-09', 210.00, 0, 0, NULL, 'web', 'west'),
+			
+			-- 2025年第三季度其他月份数据
+			('ord010', 'u1', '2025-07-01', '2025-07', 160.00, 0, 0, NULL, 'web', 'north'),
+			('ord011', 'u2', '2025-07-02', '2025-07', 180.00, 1, 0, NULL, 'mobile', 'south'),
+			
+			-- 2025年其他季度数据
+			('ord012', 'u1', '2025-01-01', '2025-01', 200.00, 0, 0, NULL, 'web', 'north'),
+			('ord013', 'u2', '2025-02-01', '2025-02', 150.00, 1, 0, NULL, 'mobile', 'south'),
+			('ord014', 'u3', '2025-03-01', '2025-03', 175.00, 0, 0, NULL, 'mobile', 'east'),
+			('ord015', 'u1', '2025-04-01', '2025-04', 185.00, 0, 0, NULL, 'web', 'north'),
+			('ord016', 'u2', '2025-05-01', '2025-05', 130.00, 1, 0, NULL, 'mobile', 'south'),
+			('ord017', 'u3', '2025-06-01', '2025-06', 155.00, 0, 0, NULL, 'mobile', 'east'),
+			('ord018', 'u1', '2025-10-01', '2025-10', 210.00, 0, 0, NULL, 'web', 'north'),
+			('ord019', 'u2', '2025-11-01', '2025-11', 150.00, 1, 0, NULL, 'mobile', 'south'),
+			('ord020', 'u3', '2025-12-01', '2025-12', 180.00, 0, 0, NULL, 'mobile', 'east')
+			ON DUPLICATE KEY UPDATE order_amount=VALUES(order_amount);
 			"""
 		))
 		

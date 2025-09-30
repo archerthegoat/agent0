@@ -339,9 +339,12 @@ class KBVectorRetriever:
             search_k = max(top_k * 3, 15)  # 检索更多候选，提高类型覆盖
             results = self._vector_store.search([query_vector], top_k=search_k)[0]
             
-            # 过滤出指标和维度，并标准化alias（设置宽松相似度阈值）
+            # 过滤出指标和维度，并标准化alias（动态相似度阈值）
             topics_and_metrics = []
-            min_similarity_threshold = 0.42  # 平衡召回率和精确率，提升检索质量
+            # 动态相似度阈值：根据查询类型和长度调整
+            base_threshold = 0.45  # 提高基础阈值，提升精确度
+            query_length_factor = min(0.05, len(query) * 0.01)  # 长查询稍微降低阈值
+            min_similarity_threshold = base_threshold - query_length_factor
             
             # 按类型分组，确保类型多样性
             type_groups = {'metric': [], 'dimension': [], 'mapping': [], 'concept': []}
@@ -395,8 +398,9 @@ class KBVectorRetriever:
             else:
                 # 如果没有找到维度，尝试降低阈值强制检索
                 print(f"[DEBUG] 未找到维度实体，尝试降低阈值强制检索")
+                fallback_threshold = max(0.35, min_similarity_threshold - 0.10)  # 动态回退阈值
                 for entity_id, score in results:
-                    if float(score) >= 0.30:  # 适度降低阈值，保持质量
+                    if float(score) >= fallback_threshold:
                         metadata = self._get_entity_metadata(entity_id)
                         if metadata and metadata.get('entity_type') == 'dimension':
                             fragment = {
@@ -418,8 +422,9 @@ class KBVectorRetriever:
             else:
                 # 如果没有找到映射，尝试降低阈值强制检索
                 print(f"[DEBUG] 未找到映射实体，尝试降低阈值强制检索")
+                fallback_threshold = max(0.35, min_similarity_threshold - 0.10)  # 动态回退阈值
                 for entity_id, score in results:
-                    if float(score) >= 0.30:  # 适度降低阈值，保持质量
+                    if float(score) >= fallback_threshold:
                         metadata = self._get_entity_metadata(entity_id)
                         if metadata and metadata.get('entity_type') == 'mapping':
                             fragment = {

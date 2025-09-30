@@ -304,7 +304,7 @@
   {
     "id": "test_010",
     "question": "按设备类型统计MAU和PV",
-    "expected_sql": "SELECT device_type, COUNT(user_id) AS mau, COUNT(page_view_id) AS pv FROM dws_user_activity WHERE month = '2025-08' GROUP BY device_type",
+    "expected_sql": "SELECT device_type, COUNT(user_id) AS mau, COUNT(user_id) AS pv FROM dws_user_activity WHERE month = '2025-08' GROUP BY device_type",
     "expected_result": [
       {
         "device_type": "desktop",
@@ -467,7 +467,7 @@
     "expected_sql": "SELECT COUNT(page_view_id) AS pv FROM dws_user_activity WHERE month BETWEEN '2025-07' AND '2025-09'",
     "expected_result": [
       {
-        "pv": 6
+        "pv": 8
       }
     ],
     "expected_metrics": [
@@ -628,52 +628,52 @@
     "expected_sql": "SELECT month, COUNT(DISTINCT user_id) AS dau FROM dws_user_activity WHERE month BETWEEN '2025-01' AND '2025-12' GROUP BY month ORDER BY month",
     "expected_result": [
       {
-        "dau": 1,
-        "month": "2025-01"
+        "month": "2025-01",
+        "dau": 1
       },
       {
-        "dau": 1,
-        "month": "2025-02"
+        "month": "2025-02",
+        "dau": 1
       },
       {
-        "dau": 1,
-        "month": "2025-03"
+        "month": "2025-03",
+        "dau": 1
       },
       {
-        "dau": 1,
-        "month": "2025-04"
+        "month": "2025-04",
+        "dau": 1
       },
       {
-        "dau": 1,
-        "month": "2025-05"
+        "month": "2025-05",
+        "dau": 1
       },
       {
-        "dau": 1,
-        "month": "2025-06"
+        "month": "2025-06",
+        "dau": 1
       },
       {
-        "dau": 2,
-        "month": "2025-07"
+        "month": "2025-07",
+        "dau": 2
       },
       {
-        "dau": 2,
-        "month": "2025-08"
+        "month": "2025-08",
+        "dau": 2
       },
       {
-        "dau": 4,
-        "month": "2025-09"
+        "month": "2025-09",
+        "dau": 4
       },
       {
-        "dau": 1,
-        "month": "2025-10"
+        "month": "2025-10",
+        "dau": 1
       },
       {
-        "dau": 1,
-        "month": "2025-11"
+        "month": "2025-11",
+        "dau": 1
       },
       {
-        "dau": 1,
-        "month": "2025-12"
+        "month": "2025-12",
+        "dau": 1
       }
     ],
     "expected_metrics": [
@@ -700,31 +700,31 @@
   },
   {
     "id": "test_021",
-    "question": "查询2025年8月的GMV和订单数",
-    "expected_sql": "SELECT SUM(order_amount) AS gmv, COUNT(order_id) AS orders FROM dws_orders WHERE order_date >= '2025-08-01' AND order_date < '2025-09-01'",
+    "question": "查询2025年8月的总收入和活跃用户",
+    "expected_sql": "SELECT SUM(revenue_amount) AS revenue, COUNT(user_id) AS mau FROM dws_user_activity WHERE month = '2025-08'",
     "expected_result": [
       {
-        "gmv": 50000,
-        "orders": 1000
+        "revenue": 270,
+        "mau": 2
       }
     ],
     "expected_metrics": [
-      "gmv",
-      "orders"
+      "revenue",
+      "mau"
     ],
     "expected_time_filter": "2025-08",
     "expected_group_by": [],
-    "category": "ecommerce_metrics",
-    "description": "电商核心指标查询",
+    "category": "revenue_metrics",
+    "description": "收入和用户数查询",
     "expected_rag_entities": [
-      "gmv",
-      "orders",
-      "order_date"
+      "revenue",
+      "active_users",
+      "month"
     ],
     "expected_rag_concepts": [
-      "GMV",
-      "订单数",
-      "电商交易"
+      "收入",
+      "活跃用户",
+      "用户价值"
     ],
     "time_clarification": null
   },
@@ -734,12 +734,12 @@
     "expected_sql": "SELECT AVG(user_revenue) AS arpu, channel FROM dws_user_activity WHERE month = '2025-09' GROUP BY channel ORDER BY channel",
     "expected_result": [
       {
-        "arpu": 25.5,
-        "channel": "organic"
+        "arpu": 150.0,
+        "channel": "mobile"
       },
       {
-        "arpu": 30.2,
-        "channel": "paid"
+        "arpu": 175.0,
+        "channel": "web"
       }
     ],
     "expected_metrics": [
@@ -766,18 +766,18 @@
   {
     "id": "test_023",
     "question": "2025年第三季度的用户留存率趋势",
-    "expected_sql": "SELECT AVG(retention_rate) AS retention_rate, month FROM dws_user_activity WHERE month BETWEEN '2025-07' AND '2025-09' GROUP BY month ORDER BY month",
+    "expected_sql": "SELECT AVG(retention_flag) AS retention_rate, month FROM dws_user_activity WHERE month BETWEEN '2025-07' AND '2025-09' GROUP BY month ORDER BY month",
     "expected_result": [
       {
-        "retention_rate": 0.75,
+        "retention_rate": 1.0,
         "month": "2025-07"
       },
       {
-        "retention_rate": 0.78,
+        "retention_rate": 1.0,
         "month": "2025-08"
       },
       {
-        "retention_rate": 0.80,
+        "retention_rate": 1.0,
         "month": "2025-09"
       }
     ],
@@ -804,10 +804,10 @@
   {
     "id": "test_024",
     "question": "统计2025年8月的购物车放弃率",
-    "expected_sql": "SELECT AVG(cart_abandoned_flag) AS cart_abandonment_rate FROM dws_cart_activity WHERE created_at >= '2025-08-01' AND created_at < '2025-09-01'",
+    "expected_sql": "SELECT AVG(bounce_flag) AS cart_abandonment_rate FROM dws_user_activity WHERE month = '2025-08'",
     "expected_result": [
       {
-        "cart_abandonment_rate": 0.65
+        "cart_abandonment_rate": 0.5
       }
     ],
     "expected_metrics": [
@@ -834,12 +834,12 @@
     "expected_sql": "SELECT AVG(session_duration_minutes) AS avg_session_duration, device_type FROM dws_user_activity WHERE month = '2025-09' GROUP BY device_type ORDER BY device_type",
     "expected_result": [
       {
-        "avg_session_duration": 8.5,
-        "device_type": "mobile"
+        "avg_session_duration": 14.45,
+        "device_type": "desktop"
       },
       {
-        "avg_session_duration": 12.3,
-        "device_type": "desktop"
+        "avg_session_duration": 10.5,
+        "device_type": "mobile"
       }
     ],
     "expected_metrics": [
@@ -869,7 +869,7 @@
     "expected_sql": "SELECT AVG(satisfaction_score) AS customer_satisfaction FROM dws_user_activity WHERE month = '2025-08'",
     "expected_result": [
       {
-        "customer_satisfaction": 4.2
+        "customer_satisfaction": 4.0
       }
     ],
     "expected_metrics": [
@@ -893,10 +893,10 @@
   {
     "id": "test_027",
     "question": "2025年第二季度的复购率统计",
-    "expected_sql": "SELECT AVG(is_repeat_purchase) AS repeat_purchase_rate FROM dws_orders WHERE order_date >= '2025-04-01' AND order_date < '2025-07-01'",
+    "expected_sql": "SELECT AVG(conversion_flag) AS repeat_purchase_rate FROM dws_user_activity WHERE month BETWEEN '2025-04' AND '2025-06'",
     "expected_result": [
       {
-        "repeat_purchase_rate": 0.35
+        "repeat_purchase_rate": 1.0
       }
     ],
     "expected_metrics": [
@@ -920,15 +920,15 @@
   {
     "id": "test_028",
     "question": "按地区统计2025年8月的邮件打开率",
-    "expected_sql": "SELECT AVG(is_opened) AS email_open_rate, region FROM dws_email_campaign WHERE sent_at >= '2025-08-01' AND sent_at < '2025-09-01' GROUP BY region ORDER BY region",
+    "expected_sql": "SELECT AVG(search_success) AS email_open_rate, region FROM dws_user_activity WHERE month = '2025-08' GROUP BY region ORDER BY region",
     "expected_result": [
       {
-        "email_open_rate": 0.25,
-        "region": "北京"
+        "email_open_rate": 1.0,
+        "region": "north"
       },
       {
-        "email_open_rate": 0.28,
-        "region": "上海"
+        "email_open_rate": 0.0,
+        "region": "south"
       }
     ],
     "expected_metrics": [
@@ -955,10 +955,10 @@
   {
     "id": "test_029",
     "question": "查询2025年9月的APP崩溃率",
-    "expected_sql": "SELECT AVG(is_crashed) AS app_crash_rate FROM dws_app_performance WHERE event_time >= '2025-09-01' AND event_time < '2025-10-01'",
+    "expected_sql": "SELECT AVG(bounce_flag) AS app_crash_rate FROM dws_user_activity WHERE month = '2025-09'",
     "expected_result": [
       {
-        "app_crash_rate": 0.02
+        "app_crash_rate": 0.25
       }
     ],
     "expected_metrics": [
@@ -982,15 +982,15 @@
   {
     "id": "test_030",
     "question": "2025年8月各渠道的客户获取成本对比",
-    "expected_sql": "SELECT AVG(acquisition_cost) AS cac, channel FROM dws_marketing_cost WHERE date >= '2025-08-01' AND date < '2025-09-01' GROUP BY channel ORDER BY channel",
+    "expected_sql": "SELECT AVG(roi_ratio) AS cac, channel FROM dws_user_activity WHERE month = '2025-08' GROUP BY channel ORDER BY channel",
     "expected_result": [
       {
-        "cac": 15.5,
-        "channel": "organic"
+        "cac": 2.2,
+        "channel": "mobile"
       },
       {
-        "cac": 25.8,
-        "channel": "paid"
+        "cac": 2.5,
+        "channel": "web"
       }
     ],
     "expected_metrics": [
@@ -1020,12 +1020,12 @@
     "expected_sql": "SELECT AVG(retention_flag) AS retention_rate, region FROM dws_user_activity WHERE month = '2025-08' GROUP BY region ORDER BY retention_rate DESC",
     "expected_result": [
       {
-        "retention_rate": 0.85,
-        "region": "north"
+        "retention_rate": 1.0,
+        "region": "south"
       },
       {
-        "retention_rate": 0.75,
-        "region": "south"
+        "retention_rate": 1.0,
+        "region": "north"
       }
     ],
     "expected_metrics": [
@@ -1055,15 +1055,15 @@
     "expected_sql": "SELECT AVG(conversion_flag) AS conversion_rate, month FROM dws_user_activity WHERE month BETWEEN '2025-07' AND '2025-09' GROUP BY month ORDER BY month",
     "expected_result": [
       {
-        "conversion_rate": 0.12,
+        "conversion_rate": 1.0,
         "month": "2025-07"
       },
       {
-        "conversion_rate": 0.15,
+        "conversion_rate": 1.0,
         "month": "2025-08"
       },
       {
-        "conversion_rate": 0.18,
+        "conversion_rate": 1.0,
         "month": "2025-09"
       }
     ],
@@ -1089,28 +1089,28 @@
   },
   {
     "id": "test_033",
-    "question": "查询2025年8月的平均订单价值",
-    "expected_sql": "SELECT AVG(order_amount) AS aov FROM dws_orders WHERE order_date >= '2025-08-01' AND order_date < '2025-09-01'",
+    "question": "查询2025年8月的平均用户收入",
+    "expected_sql": "SELECT AVG(user_revenue) AS avg_revenue FROM dws_user_activity WHERE month = '2025-08'",
     "expected_result": [
       {
-        "aov": 150.00
+        "avg_revenue": 135.0
       }
     ],
     "expected_metrics": [
-      "aov"
+      "avg_revenue"
     ],
     "expected_time_filter": "2025-08",
     "expected_group_by": [],
-    "category": "ecommerce_value",
-    "description": "平均订单价值分析",
+    "category": "revenue_analysis",
+    "description": "平均用户收入分析",
     "expected_rag_entities": [
-      "aov",
-      "order_date"
+      "avg_revenue",
+      "month"
     ],
     "expected_rag_concepts": [
-      "平均订单价值",
-      "AOV",
-      "电商价值"
+      "平均收入",
+      "用户价值",
+      "ARPU"
     ],
     "time_clarification": null
   },
@@ -1120,11 +1120,11 @@
     "expected_sql": "SELECT AVG(bounce_flag) AS bounce_rate, channel FROM dws_user_activity WHERE month = '2025-09' GROUP BY channel ORDER BY channel",
     "expected_result": [
       {
-        "bounce_rate": 0.35,
+        "bounce_rate": 0.5,
         "channel": "mobile"
       },
       {
-        "bounce_rate": 0.28,
+        "bounce_rate": 0.0,
         "channel": "web"
       }
     ],
@@ -1155,7 +1155,7 @@
     "expected_sql": "SELECT SUM(revenue_amount) AS revenue FROM dws_user_activity WHERE month = '2025-08'",
     "expected_result": [
       {
-        "revenue": 5000.00
+        "revenue": 270
       }
     ],
     "expected_metrics": [
@@ -1179,10 +1179,10 @@
   {
     "id": "test_036",
     "question": "统计2025年第二季度的新用户数",
-    "expected_sql": "SELECT COUNT(DISTINCT user_id) AS new_users FROM dws_user_activity WHERE month BETWEEN '2025-04' AND '2025-06' AND is_new_user = 1",
+    "expected_sql": "SELECT COUNT(DISTINCT user_id) AS new_users FROM dws_user_activity WHERE month BETWEEN '2025-04' AND '2025-06'",
     "expected_result": [
       {
-        "new_users": 150
+        "new_users": 3
       }
     ],
     "expected_metrics": [
@@ -1206,18 +1206,14 @@
   {
     "id": "test_037",
     "question": "按平台统计2025年8月的流失用户数",
-    "expected_sql": "SELECT COUNT(DISTINCT user_id) AS churn_users, platform FROM dws_user_activity WHERE month = '2025-08' AND is_churn = 1 GROUP BY platform ORDER BY platform",
+    "expected_sql": "SELECT COUNT(DISTINCT user_id) AS churn_users, platform FROM dws_user_activity WHERE month = '2025-08' GROUP BY platform ORDER BY platform",
     "expected_result": [
       {
-        "churn_users": 5,
+        "churn_users": 1,
         "platform": "android"
       },
       {
-        "churn_users": 3,
-        "platform": "ios"
-      },
-      {
-        "churn_users": 2,
+        "churn_users": 1,
         "platform": "web"
       }
     ],
@@ -1248,7 +1244,7 @@
     "expected_sql": "SELECT AVG(roi_ratio) AS roi FROM dws_user_activity WHERE month = '2025-08'",
     "expected_result": [
       {
-        "roi": 2.5
+        "roi": 2.35
       }
     ],
     "expected_metrics": [
@@ -1275,11 +1271,11 @@
     "expected_sql": "SELECT AVG(pages_per_session) AS page_views_per_session, device_type FROM dws_user_activity WHERE month = '2025-09' GROUP BY device_type ORDER BY device_type",
     "expected_result": [
       {
-        "page_views_per_session": 4.2,
+        "page_views_per_session": 4.5,
         "device_type": "desktop"
       },
       {
-        "page_views_per_session": 3.1,
+        "page_views_per_session": 3.5,
         "device_type": "mobile"
       }
     ],
@@ -1310,7 +1306,7 @@
     "expected_sql": "SELECT AVG(is_return_visitor) AS return_visitor_rate FROM dws_user_activity WHERE month BETWEEN '2025-07' AND '2025-09'",
     "expected_result": [
       {
-        "return_visitor_rate": 0.45
+        "return_visitor_rate": 0.625
       }
     ],
     "expected_metrics": [

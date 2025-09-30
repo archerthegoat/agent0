@@ -180,28 +180,32 @@ class OptimizedQ2QRewriter:
             # 构建上下文
             context_parts = []
             
-            # 添加指标信息
+            # 添加指标信息 - 增强版本
             if type_groups['metric']:
                 metrics = []
                 for fragment in type_groups['metric'][:3]:  # 最多3个指标
                     metadata = fragment.get('metadata', {})
                     canonical_name = metadata.get('canonical_name', '')
                     aliases = metadata.get('aliases', [])
+                    score = fragment.get('score', 0)
                     if canonical_name:
                         alias_str = f"({', '.join(aliases[:2])})" if aliases else ""
-                        metrics.append(f"{canonical_name}{alias_str}")
+                        relevance = "高相关" if score > 0.7 else "相关" if score > 0.5 else "低相关"
+                        metrics.append(f"{canonical_name}{alias_str}({relevance})")
                 
                 if metrics:
                     context_parts.append(f"Metrics: {', '.join(metrics)}")
             
-            # 添加维度信息
+            # 添加维度信息 - 增强版本
             if type_groups['dimension']:
                 dimensions = []
                 for fragment in type_groups['dimension'][:2]:  # 最多2个维度
                     metadata = fragment.get('metadata', {})
                     canonical_name = metadata.get('canonical_name', '')
+                    score = fragment.get('score', 0)
                     if canonical_name:
-                        dimensions.append(canonical_name)
+                        relevance = "高相关" if score > 0.7 else "相关" if score > 0.5 else "低相关"
+                        dimensions.append(f"{canonical_name}({relevance})")
                 
                 if dimensions:
                     context_parts.append(f"Dimensions: {', '.join(dimensions)}")
