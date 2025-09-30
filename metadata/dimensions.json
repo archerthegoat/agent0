@@ -873,5 +873,90 @@
         "column": "subscription_plan"
       }
     }
+  },
+  {
+    "id": "dim_user_segment",
+    "canonical_name": "用户分群",
+    "aliases": [
+      "user_segment",
+      "用户分群",
+      "用户群体",
+      "用户画像",
+      "分群"
+    ],
+    "type": "dimension",
+    "what": {
+      "description": "用户分群标签(如高价值用户、活跃用户、流失用户、新用户)，用于精准营销和用户运营。"
+    },
+    "how": {
+      "data_source": {
+        "layer": "DIM",
+        "table": "dim_user_segment",
+        "column": "user_segment"
+      }
+    }
+  },
+  {
+    "id": "dim_content_category",
+    "canonical_name": "内容分类",
+    "aliases": [
+      "content_category",
+      "内容分类",
+      "内容类型",
+      "分类"
+    ],
+    "type": "dimension",
+    "what": {
+      "description": "内容分类标签(如新闻、视频、图片、音频、文档)，用于内容分析和推荐。"
+    },
+    "how": {
+      "data_source": {
+        "layer": "DIM",
+        "table": "dim_content_category",
+        "column": "content_category"
+      }
+    }
+  },
+  {
+    "id": "dim_traffic_source",
+    "canonical_name": "流量来源",
+    "aliases": [
+      "traffic_source",
+      "流量来源",
+      "访问来源",
+      "来源"
+    ],
+    "type": "dimension",
+    "what": {
+      "description": "流量来源分类(如直接访问、搜索引擎、社交媒体、广告投放)，用于流量分析。"
+    },
+    "how": {
+      "data_source": {
+        "layer": "DIM",
+        "table": "dim_traffic_source",
+        "column": "traffic_source"
+      }
+    }
+  },
+  {
+    "id": "dim_product_category",
+    "canonical_name": "产品分类",
+    "aliases": [
+      "product_category",
+      "产品分类",
+      "商品分类",
+      "品类"
+    ],
+    "type": "dimension",
+    "what": {
+      "description": "产品分类标签(如电子产品、服装、食品、图书)，用于产品销售分析。"
+    },
+    "how": {
+      "data_source": {
+        "layer": "DIM",
+        "table": "dim_product_category",
+        "column": "product_category"
+      }
+    }
   }
 ]

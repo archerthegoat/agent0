@@ -488,5 +488,101 @@
         "conversion_to_next": "purchase_to_repeat_rate"
       }
     ]
+  },
+  {
+    "id": "mapping_user_behavior_analysis",
+    "canonical_name": "用户行为分析映射",
+    "aliases": [
+      "user_behavior_mapping",
+      "用户行为关系",
+      "行为分析映射"
+    ],
+    "type": "mapping",
+    "what": {
+      "description": "用户行为分析中的指标与维度关联关系，用于行为模式分析"
+    },
+    "how": {
+      "data_source": {
+        "layer": "MAPPING",
+        "table": "user_behavior_mapping",
+        "column": "mapping_id"
+      }
+    },
+    "mappings": [
+      {
+        "behavior_type": "page_view",
+        "metrics": [
+          "page_views",
+          "unique_page_views",
+          "avg_time_on_page"
+        ],
+        "dimensions": [
+          "page_type",
+          "content_category",
+          "device_type"
+        ]
+      },
+      {
+        "behavior_type": "session",
+        "metrics": [
+          "session_duration",
+          "pages_per_session",
+          "bounce_rate"
+        ],
+        "dimensions": [
+          "traffic_source",
+          "user_segment",
+          "region"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mapping_content_performance",
+    "canonical_name": "内容效果映射",
+    "aliases": [
+      "content_performance_mapping",
+      "内容效果关系",
+      "内容分析映射"
+    ],
+    "type": "mapping",
+    "what": {
+      "description": "内容效果分析中的指标与维度关联关系，用于内容优化"
+    },
+    "how": {
+      "data_source": {
+        "layer": "MAPPING",
+        "table": "content_performance_mapping",
+        "column": "mapping_id"
+      }
+    },
+    "mappings": [
+      {
+        "content_type": "article",
+        "metrics": [
+          "read_time",
+          "share_count",
+          "comment_count"
+        ],
+        "dimensions": [
+          "content_category",
+          "author",
+          "publish_date"
+        ]
+      },
+      {
+        "content_type": "video",
+        "metrics": [
+          "watch_time",
+          "completion_rate",
+          "engagement_rate"
+        ],
+        "dimensions": [
+          "content_category",
+          "video_length",
+          "quality"
+        ]
+      }
+    ]
   }
 ]

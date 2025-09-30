@@ -276,23 +276,43 @@ class KBVectorRetriever:
             
             s = load_settings()
             
-            # 优先使用本地HNSW向量存储，而不是Milvus
-            try:
-                from datainsight_agent.clients.vector_store import LocalHNSWVectorStore
-                self._vector_store = LocalHNSWVectorStore(
-                    index_dir=self._index_dir, 
-                    dim=self._cached_dim, 
-                    space=str(getattr(s, "vector_space", "ip"))
-                )
-                print(f"[INFO] KB向量索引加载成功 (LocalHNSW): {self._index_dir}")
-            except Exception as local_error:
-                print(f"[WARN] 本地向量存储加载失败: {local_error}")
-                # 回退到Milvus（如果可用）
-                if MilvusVectorStore is None:
-                    raise RuntimeError("MilvusVectorStore not available. Please install pymilvus and ensure MILVUS_ENABLED=true")
-                
-                self._vector_store = MilvusVectorStore(dim=self._cached_dim, space=str(getattr(s, "vector_space", "ip")))
-                print(f"[INFO] KB向量索引加载成功 (Milvus): {self._index_dir}")
+            # 优先使用Milvus向量存储，确保使用最新的实体数据
+            if getattr(s, "milvus_enabled", False) and MilvusVectorStore is not None:
+                try:
+                    self._vector_store = MilvusVectorStore(dim=self._cached_dim, space=str(getattr(s, "vector_space", "ip")))
+                    print(f"[INFO] KB向量索引加载成功 (Milvus): {self._index_dir}")
+                except Exception as milvus_error:
+                    print(f"[WARN] Milvus向量存储加载失败: {milvus_error}")
+                    # 回退到本地HNSW
+                    try:
+                        from datainsight_agent.clients.vector_store import LocalHNSWVectorStore
+                        self._vector_store = LocalHNSWVectorStore(
+                            index_dir=self._index_dir, 
+                            dim=self._cached_dim, 
+                            space=str(getattr(s, "vector_space", "ip"))
+                        )
+                        print(f"[INFO] KB向量索引加载成功 (LocalHNSW): {self._index_dir}")
+                    except Exception as local_error:
+                        print(f"[ERROR] 本地向量存储加载失败: {local_error}")
+                        raise RuntimeError("Both Milvus and LocalHNSW vector stores failed to load")
+            else:
+                # 如果Milvus未启用，使用本地HNSW
+                try:
+                    from datainsight_agent.clients.vector_store import LocalHNSWVectorStore
+                    self._vector_store = LocalHNSWVectorStore(
+                        index_dir=self._index_dir, 
+                        dim=self._cached_dim, 
+                        space=str(getattr(s, "vector_space", "ip"))
+                    )
+                    print(f"[INFO] KB向量索引加载成功 (LocalHNSW): {self._index_dir}")
+                except Exception as local_error:
+                    print(f"[WARN] 本地向量存储加载失败: {local_error}")
+                    # 回退到Milvus（如果可用）
+                    if MilvusVectorStore is None:
+                        raise RuntimeError("MilvusVectorStore not available. Please install pymilvus and ensure MILVUS_ENABLED=true")
+                    
+                    self._vector_store = MilvusVectorStore(dim=self._cached_dim, space=str(getattr(s, "vector_space", "ip")))
+                    print(f"[INFO] KB向量索引加载成功 (Milvus): {self._index_dir}")
         except Exception as e:
             print(f"[ERROR] 加载KB向量索引失败: {e}")
     
@@ -319,9 +339,9 @@ class KBVectorRetriever:
             search_k = max(top_k * 3, 15)  # 检索更多候选，提高类型覆盖
             results = self._vector_store.search([query_vector], top_k=search_k)[0]
             
-            # 过滤出指标和维度，并标准化alias（设置严格相似度阈值）
+            # 过滤出指标和维度，并标准化alias（设置宽松相似度阈值）
             topics_and_metrics = []
-            min_similarity_threshold = 0.45  # 进一步降低阈值，提高检索覆盖率
+            min_similarity_threshold = 0.42  # 平衡召回率和精确率，提升检索质量
             
             # 按类型分组，确保类型多样性
             type_groups = {'metric': [], 'dimension': [], 'mapping': [], 'concept': []}
@@ -342,7 +362,7 @@ class KBVectorRetriever:
                 if float(score) < min_similarity_threshold:
                     continue
                     
-                entity_type = metadata.get('entity_type', '')
+                entity_type = metadata.get('entity_type') or metadata.get('type', '')
                 if entity_type in ['metric', 'dimension', 'mapping', 'concept']:
                     # 标准化指标名称
                     standardized_metadata = self._standardize_metric_metadata(metadata)
@@ -358,12 +378,70 @@ class KBVectorRetriever:
                     if not any(f.get('entity_id') == entity_id for f in type_groups[entity_type]):
                         type_groups[entity_type].append(fragment)
             
-            # 从每个类型组中选择最佳结果，确保类型多样性
-            for entity_type, fragments in type_groups.items():
-                if fragments:
-                    # 按分数排序，选择前2个
-                    fragments.sort(key=lambda x: x['score'], reverse=True)
-                    topics_and_metrics.extend(fragments[:2])
+            # 强制类型多样性：确保至少包含不同类型的实体
+            selected_types = set()
+            
+            # 首先选择指标类型（优先级最高）
+            if 'metric' in type_groups and type_groups['metric']:
+                type_groups['metric'].sort(key=lambda x: x['score'], reverse=True)
+                topics_and_metrics.extend(type_groups['metric'][:3])
+                selected_types.add('metric')
+            
+            # 强制选择维度类型（如果存在）
+            if 'dimension' in type_groups and type_groups['dimension']:
+                type_groups['dimension'].sort(key=lambda x: x['score'], reverse=True)
+                topics_and_metrics.extend(type_groups['dimension'][:2])
+                selected_types.add('dimension')
+            else:
+                # 如果没有找到维度，尝试降低阈值强制检索
+                print(f"[DEBUG] 未找到维度实体，尝试降低阈值强制检索")
+                for entity_id, score in results:
+                    if float(score) >= 0.30:  # 适度降低阈值，保持质量
+                        metadata = self._get_entity_metadata(entity_id)
+                        if metadata and metadata.get('entity_type') == 'dimension':
+                            fragment = {
+                                "entity_id": entity_id,
+                                "entity_type": "dimension",
+                                "score": float(score),
+                                "metadata": metadata
+                            }
+                            topics_and_metrics.append(fragment)
+                            selected_types.add('dimension')
+                            print(f"[DEBUG] 强制添加维度实体: {entity_id}, 分数: {score}")
+                            break
+            
+            # 强制选择映射类型（如果存在）
+            if 'mapping' in type_groups and type_groups['mapping']:
+                type_groups['mapping'].sort(key=lambda x: x['score'], reverse=True)
+                topics_and_metrics.extend(type_groups['mapping'][:1])
+                selected_types.add('mapping')
+            else:
+                # 如果没有找到映射，尝试降低阈值强制检索
+                print(f"[DEBUG] 未找到映射实体，尝试降低阈值强制检索")
+                for entity_id, score in results:
+                    if float(score) >= 0.30:  # 适度降低阈值，保持质量
+                        metadata = self._get_entity_metadata(entity_id)
+                        if metadata and metadata.get('entity_type') == 'mapping':
+                            fragment = {
+                                "entity_id": entity_id,
+                                "entity_type": "mapping",
+                                "score": float(score),
+                                "metadata": metadata
+                            }
+                            topics_and_metrics.append(fragment)
+                            selected_types.add('mapping')
+                            print(f"[DEBUG] 强制添加映射实体: {entity_id}, 分数: {score}")
+                            break
+            
+            # 强制选择概念类型（如果存在）
+            if 'concept' in type_groups and type_groups['concept']:
+                type_groups['concept'].sort(key=lambda x: x['score'], reverse=True)
+                topics_and_metrics.extend(type_groups['concept'][:1])
+                selected_types.add('concept')
+            
+            print(f"[DEBUG] 强制类型多样性 - 已选择类型: {selected_types}")
+            print(f"[DEBUG] 强制类型多样性 - 总结果数: {len(topics_and_metrics)}")
+            print(f"[DEBUG] 各类型组数量 - metric: {len(type_groups.get('metric', []))}, dimension: {len(type_groups.get('dimension', []))}, mapping: {len(type_groups.get('mapping', []))}, concept: {len(type_groups.get('concept', []))}")
             
             # 如果结果不足，补充其他类型的结果
             if len(topics_and_metrics) < top_k:
@@ -548,38 +626,38 @@ class KBVectorRetriever:
                                 "aggregation": item.get("aggregation", {})
                             }
             elif entity_id.startswith('dim_'):
-                dim_name = entity_id.replace('dim_', '')
+                dim_id = entity_id.replace('dim_', '')
                 # 从 dimensions.json 中查找
                 dimensions_file = Path("metadata/dimensions.json")
                 if dimensions_file.exists():
                     obj = json.loads(dimensions_file.read_text(encoding="utf-8"))
                     arr = obj if isinstance(obj, list) else [obj]
                     for item in arr:
-                        if item.get("canonical_name") == dim_name:
+                        if item.get("id") == entity_id or item.get("id") == dim_id:
                             return {
                                 "entity_id": entity_id,
                                 "entity_type": "dimension",
-                                "canonical_name": item.get("canonical_name", dim_name),
+                                "canonical_name": item.get("canonical_name", dim_id),
                                 "aliases": item.get("aliases", []),
                                 "column": item.get("how", {}).get("data_source", {}).get("column"),
                                 "file": "dimensions.json"
                             }
             elif entity_id.startswith('mapping_'):
-                column = entity_id.replace('mapping_', '')
-                # 从 intent_mappings.json 中查找
-                mappings_file = Path("metadata/intent_mappings.json")
+                mapping_id = entity_id.replace('mapping_', '')
+                # 从 mappings.json 中查找
+                mappings_file = Path("metadata/mappings.json")
                 if mappings_file.exists():
                     obj = json.loads(mappings_file.read_text(encoding="utf-8"))
                     arr = obj if isinstance(obj, list) else [obj]
                     for item in arr:
-                        if item.get("column") == column:
+                        if item.get("id") == entity_id or item.get("id") == mapping_id:
                             return {
                                 "entity_id": entity_id,
                                 "entity_type": "mapping",
-                                "canonical_name": column,
-                                "aliases": item.get("phrases", []),
-                                "column": column,
-                                "file": "intent_mappings.json"
+                                "canonical_name": item.get("canonical_name", mapping_id),
+                                "aliases": item.get("aliases", []),
+                                "mappings": item.get("mappings", []),
+                                "file": "mappings.json"
                             }
             
             # 最后的回退：根据entity_id推断类型

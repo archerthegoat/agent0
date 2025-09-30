@@ -661,17 +661,23 @@ class BatchTestEvaluator:
         }
 
     def _get_expected_entity_types_for_question(self, question: str) -> set:
-        """根据问题类型动态确定期望的实体类型"""
+        """根据问题类型动态确定期望的实体类型 - 优化版本"""
         from test_evaluation_config import QUESTION_TYPE_ENTITY_MAPPING, BUSINESS_CONCEPT_KEYWORDS
         
         question_lower = question.lower()
         
-        # 检查是否包含维度相关词汇
-        dimension_keywords = ['渠道', '地区', '设备', '平台', '用户等级', '分组', '分布', '对比', '分析']
+        # 扩展维度相关词汇检测
+        dimension_keywords = [
+            '渠道', '地区', '设备', '平台', '用户等级', '分组', '分布', '对比', '分析',
+            '按', 'group by', 'channel', 'region', 'device', 'platform', '维度'
+        ]
         has_dimension = any(keyword in question for keyword in dimension_keywords)
         
-        # 检查是否包含映射相关词汇
-        mapping_keywords = ['映射', '关系', '关联', '规则', '公式', '计算', '逻辑']
+        # 扩展映射相关词汇检测
+        mapping_keywords = [
+            '映射', '关系', '关联', '规则', '公式', '计算', '逻辑', '对应', '转换',
+            'mapping', 'relation', 'formula', 'calculation'
+        ]
         has_mapping = any(keyword in question for keyword in mapping_keywords)
         
         # 检查是否包含概念相关词汇
@@ -681,26 +687,47 @@ class BatchTestEvaluator:
                 concept_keywords.append(concept_type)
         has_concept = len(concept_keywords) > 0
         
-        # 检查是否包含指标相关词汇
-        metric_keywords = ['mau', 'dau', 'uv', 'pv', 'gmv', 'aov', '活跃', '用户', '访问', '浏览', '成交']
+        # 扩展指标相关词汇检测
+        metric_keywords = [
+            'mau', 'dau', 'uv', 'pv', 'gmv', 'aov', '活跃', '用户', '访问', '浏览', '成交',
+            '统计', '查询', '分析', '指标', '数据', 'metric', 'statistics', 'analysis'
+        ]
         has_metric = any(keyword in question_lower for keyword in metric_keywords)
         
-        # 根据问题内容确定期望的实体类型
-        if has_mapping and has_dimension and has_metric and has_concept:
-            return set(QUESTION_TYPE_ENTITY_MAPPING['comprehensive_query'])
-        elif has_dimension and has_metric:
-            return set(QUESTION_TYPE_ENTITY_MAPPING['mixed_query'])
-        elif has_mapping:
-            return set(QUESTION_TYPE_ENTITY_MAPPING['mapping_query'])
-        elif has_concept:
-            return set(QUESTION_TYPE_ENTITY_MAPPING['concept_query'])
-        elif has_dimension:
-            return set(QUESTION_TYPE_ENTITY_MAPPING['dimension_query'])
-        elif has_metric:
-            return set(QUESTION_TYPE_ENTITY_MAPPING['metric_query'])
-        else:
-            # 默认期望所有类型
-            return set(QUESTION_TYPE_ENTITY_MAPPING['comprehensive_query'])
+        # 优化期望类型确定逻辑
+        expected_types = set()
+        
+        # 基础类型：所有查询都应该包含指标
+        expected_types.add('metric')
+        
+        # 根据问题内容添加其他类型
+        if has_dimension:
+            expected_types.add('dimension')
+        
+        if has_mapping:
+            expected_types.add('mapping')
+        
+        if has_concept:
+            expected_types.add('concept')
+        
+        # 如果问题包含多个概念，增加类型多样性期望
+        if len(concept_keywords) > 1:
+            expected_types.add('dimension')  # 多概念查询通常需要维度分析
+            expected_types.add('mapping')    # 多概念查询通常需要映射关系
+        
+        # 如果问题包含时间相关词汇，增加维度期望
+        time_keywords = ['年', '月', '日', '季度', '趋势', '变化', '对比', 'year', 'month', 'quarter', 'trend']
+        if any(keyword in question for keyword in time_keywords):
+            expected_types.add('dimension')
+        
+        # 确保至少有2种类型，提高概念覆盖率
+        if len(expected_types) < 2:
+            if 'dimension' not in expected_types:
+                expected_types.add('dimension')
+            elif 'mapping' not in expected_types:
+                expected_types.add('mapping')
+        
+        return expected_types
 
     def _evaluate_stage2_semantic_fragments(self, test_case: TestCase, rag_fragments: List[Dict]) -> dict:
         """第二段：语义知识片段评估"""
@@ -768,7 +795,7 @@ class BatchTestEvaluator:
         }
     
     def _calculate_concept_coverage_with_weights(self, rag_fragments: List[Dict], expected_types: List[str]) -> float:
-        """使用权重计算概念覆盖率"""
+        """使用权重计算概念覆盖率 - 优化版本"""
         if not rag_fragments or not expected_types:
             return 0.0
         
@@ -777,6 +804,10 @@ class BatchTestEvaluator:
         for fragment in rag_fragments:
             entity_type = fragment.get('entity_type', 'unknown')
             type_counts[entity_type] = type_counts.get(entity_type, 0) + 1
+        
+        print(f"[DEBUG] Concept coverage - Expected types: {expected_types}")
+        print(f"[DEBUG] Concept coverage - Retrieved types: {list(type_counts.keys())}")
+        print(f"[DEBUG] Concept coverage - Type counts: {type_counts}")
         
         # 计算加权覆盖率
         total_weighted_score = 0.0
@@ -788,8 +819,14 @@ class BatchTestEvaluator:
             
             if expected_type in type_counts and type_counts[expected_type] > 0:
                 total_weighted_score += weight
+                print(f"[DEBUG] Concept coverage - Found {expected_type}: +{weight}")
+            else:
+                print(f"[DEBUG] Concept coverage - Missing {expected_type}: +0")
         
-        return total_weighted_score / total_expected_weight if total_expected_weight > 0 else 0.0
+        coverage = total_weighted_score / total_expected_weight if total_expected_weight > 0 else 0.0
+        print(f"[DEBUG] Concept coverage - Final score: {coverage:.2%}")
+        
+        return coverage
     
     def _evaluate_result(self, test_case: TestCase, rewritten_query, ir, generated_sql: str, actual_result: List[Dict]) -> TestResult:
         """评估测试结果"""

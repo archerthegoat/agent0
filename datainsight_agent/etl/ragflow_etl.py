@@ -49,15 +49,61 @@ def _upsert_local_graph(client: LocalGraphClient, entities: List[KBEntity], dry_
 
 
 def _entity_text(e: KBEntity) -> str:
-	parts: List[str] = [e.canonical_name] + e.aliases
+	"""生成丰富的实体描述文本，提升语义相似度"""
+	parts: List[str] = []
+	
+	# 1. 基础信息
+	parts.append(e.canonical_name)
+	parts.extend(e.aliases)
+	
+	# 2. 类型标识
+	entity_type = e.type
+	if entity_type == 'metric':
+		parts.extend(['指标', 'metric', '统计', '数据'])
+	elif entity_type == 'dimension':
+		parts.extend(['维度', 'dimension', '分组', '分类'])
+	elif entity_type == 'mapping':
+		parts.extend(['映射', 'mapping', '关系', '关联'])
+	
+	# 3. 描述信息
 	if e.what and e.what.description:
 		parts.append(e.what.description)
+	
+	# 4. 业务含义
+	if e.why and e.why.business_meaning:
+		parts.append(e.why.business_meaning)
+	
+	# 5. 计算公式
 	if e.how and e.how.formula_human:
 		parts.append(e.how.formula_human)
+	
+	# 6. 数据源信息
 	if e.how and e.how.data_source:
 		ds = e.how.data_source
 		parts.append(f"{ds.layer}:{ds.table}.{ds.column or ''}")
-	return "\n".join([p for p in parts if p])
+	
+	# 7. 业务场景关键词
+	canonical_lower = e.canonical_name.lower()
+	if '用户' in canonical_lower or 'user' in canonical_lower:
+		parts.extend(['用户分析', '用户行为', '用户价值'])
+	if '活跃' in canonical_lower or 'active' in canonical_lower:
+		parts.extend(['活跃度', '活跃用户', '用户活跃'])
+	if '收入' in canonical_lower or 'revenue' in canonical_lower:
+		parts.extend(['收入分析', '营收', '财务指标'])
+	if '渠道' in canonical_lower or 'channel' in canonical_lower:
+		parts.extend(['渠道分析', '营销渠道', '获客渠道'])
+	if '时间' in canonical_lower or 'time' in canonical_lower:
+		parts.extend(['时间维度', '时间分析', '趋势分析'])
+	
+	# 8. 去重并过滤空值
+	unique_parts = []
+	seen = set()
+	for part in parts:
+		if part and part.strip() and part.strip() not in seen:
+			unique_parts.append(part.strip())
+			seen.add(part.strip())
+	
+	return "\n".join(unique_parts)
 
 
 def _upsert_milvus_vectors(entities: List[KBEntity], s) -> None:

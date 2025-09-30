@@ -142,15 +142,16 @@ class OptimizedQ2QRewriter:
             if not kb_retriever:
                 return "", ""
 
-            # 获取向量检索结果
-            fragments = kb_retriever.search_topics_and_metrics(question, top_k=5)
+            # 获取向量检索结果 - 增加检索数量确保类型多样性
+            fragments = kb_retriever.search_topics_and_metrics(question, top_k=8)
             rag_context = ""
             rag_fragments = []
 
             if fragments:
-                # 简化上下文构建，避免编码问题
-                rag_context = "metric:found"
-                rag_fragments = fragments[:3]  # 只取前3个，节省token
+                # 构建结构化的RAG上下文，包含实体信息
+                rag_context = self._build_structured_rag_context(fragments)
+                # 增加检索结果数量，确保类型多样性
+                rag_fragments = fragments[:6]  # 增加到6个，确保类型覆盖
             
             return rag_context, rag_fragments
         except Exception as e:
@@ -161,6 +162,76 @@ class OptimizedQ2QRewriter:
             except UnicodeError:
                 pass
             return "", []
+
+    def _build_structured_rag_context(self, fragments: List[Dict[str, Any]]) -> str:
+        """构建结构化的RAG上下文"""
+        try:
+            if not fragments:
+                return ""
+            
+            # 按类型分组
+            type_groups = {'metric': [], 'dimension': [], 'mapping': [], 'concept': []}
+            
+            for fragment in fragments:
+                entity_type = fragment.get('entity_type', 'metric')
+                if entity_type in type_groups:
+                    type_groups[entity_type].append(fragment)
+            
+            # 构建上下文
+            context_parts = []
+            
+            # 添加指标信息
+            if type_groups['metric']:
+                metrics = []
+                for fragment in type_groups['metric'][:3]:  # 最多3个指标
+                    metadata = fragment.get('metadata', {})
+                    canonical_name = metadata.get('canonical_name', '')
+                    aliases = metadata.get('aliases', [])
+                    if canonical_name:
+                        alias_str = f"({', '.join(aliases[:2])})" if aliases else ""
+                        metrics.append(f"{canonical_name}{alias_str}")
+                
+                if metrics:
+                    context_parts.append(f"Metrics: {', '.join(metrics)}")
+            
+            # 添加维度信息
+            if type_groups['dimension']:
+                dimensions = []
+                for fragment in type_groups['dimension'][:2]:  # 最多2个维度
+                    metadata = fragment.get('metadata', {})
+                    canonical_name = metadata.get('canonical_name', '')
+                    if canonical_name:
+                        dimensions.append(canonical_name)
+                
+                if dimensions:
+                    context_parts.append(f"Dimensions: {', '.join(dimensions)}")
+            
+            # 添加映射信息
+            if type_groups['mapping']:
+                mappings = []
+                for fragment in type_groups['mapping'][:2]:  # 最多2个映射
+                    metadata = fragment.get('metadata', {})
+                    canonical_name = metadata.get('canonical_name', '')
+                    if canonical_name:
+                        mappings.append(canonical_name)
+                
+                if mappings:
+                    context_parts.append(f"Mappings: {', '.join(mappings)}")
+            
+            # 组合上下文
+            if context_parts:
+                return " | ".join(context_parts)
+            else:
+                return "No relevant entities found"
+                
+        except Exception as e:
+            # 安全处理编码问题
+            try:
+                import logging
+                logging.getLogger(__name__).warning(f"RAG context building failed: {str(e)}")
+            except UnicodeError:
+                pass
+            return "RAG context unavailable"
 
     def rewrite(self, question: str) -> Q2QRewrite:
         """主重写方法：结合Context管理和增强解析"""

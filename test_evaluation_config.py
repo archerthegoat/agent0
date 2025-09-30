@@ -93,10 +93,10 @@ BUSINESS_CONCEPT_KEYWORDS = {
     'technical': ['技术', '系统', '平台', '应用', '崩溃', '响应', '稳定']
 }
 
-# 概念覆盖率权重配置
+# 概念覆盖率权重配置 - 优化版本
 CONCEPT_COVERAGE_WEIGHTS = {
-    'metric': 0.4,      # 指标权重
-    'dimension': 0.3,   # 维度权重
-    'mapping': 0.2,     # 映射权重
-    'concept': 0.1      # 概念权重
+    'metric': 0.35,     # 指标权重 - 降低，因为指标通常较多
+    'dimension': 0.35,  # 维度权重 - 提升，维度对分析很重要
+    'mapping': 0.20,    # 映射权重 - 保持，映射关系重要
+    'concept': 0.10     # 概念权重 - 保持，概念相对较少
 }
