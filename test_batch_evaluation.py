@@ -19,6 +19,10 @@ from datainsight_agent.services.core.sql_generator import SQLGenerator as SQLGen
 from datainsight_agent.services.core.sql_executor import SQLExecutor as SQLExecutorComponent
 from datainsight_agent.components.pipeline import SimplePipeline
 from datainsight_agent.services.db_bootstrap import init_mysql_min
+from test_evaluation_config import (
+    CORE_METRICS, METRIC_KEYWORDS, TIME_KEYWORDS, QUERY_KEYWORDS,
+    WEIGHT_CONFIG, QUALITY_THRESHOLDS, MOCK_DATA_CONFIG, EXPECTED_ENTITY_TYPES
+)
 from datainsight_agent.config.manager import ConfigManager
 
 
@@ -54,7 +58,22 @@ class TestResult:
     metric_identified_correctly: Optional[bool]
     group_by_correct: Optional[bool]
     result_complete: bool
-    # RAG相关指标
+    # Q2Q阶段RAG指标
+    q2q_rag_recall_rate: Optional[float] = None
+    q2q_rag_precision_rate: Optional[float] = None
+    q2q_rag_relevance_score: Optional[float] = None
+    q2q_rag_fragment_count: Optional[int] = None
+    q2q_rag_entity_coverage: Optional[float] = None
+    q2q_rag_concept_coverage: Optional[float] = None
+    
+    # Retrieve阶段RAG指标
+    retrieve_rag_recall_rate: Optional[float] = None
+    retrieve_rag_precision_rate: Optional[float] = None
+    retrieve_rag_relevance_score: Optional[float] = None
+    retrieve_rag_fragment_count: Optional[int] = None
+    retrieve_rag_entity_coverage: Optional[float] = None
+    
+    # 综合RAG指标（向后兼容）
     rag_recall_rate: Optional[float] = None
     rag_precision_rate: Optional[float] = None
     rag_relevance_score: Optional[float] = None
@@ -119,6 +138,30 @@ class BatchTestEvaluator:
         
         print(f"[SUCCESS] Loaded {len(self.test_cases)} test cases")
     
+    def _create_mock_kb_entities(self, expected_entities):
+        """基于expected_rag_entities创建模拟的kb_entities"""
+        if not expected_entities:
+            return []
+        
+        mock_entities = []
+        for entity in expected_entities:
+            # 使用配置判断实体类型
+            entity_type = 'metric' if entity.lower() in CORE_METRICS else 'dimension'
+            
+            mock_entity = {
+                'entity_id': f"{MOCK_DATA_CONFIG['entity_id_prefix']}{entity}",
+                'entity_type': entity_type,
+                'score': MOCK_DATA_CONFIG['default_score'],
+                'metadata': {
+                    'canonical_name': entity,
+                    'aliases': [entity],
+                    'type': entity_type
+                }
+            }
+            mock_entities.append(mock_entity)
+        
+        return mock_entities
+
     def run_single_test(self, test_case: TestCase) -> TestResult:
         """运行单个测试用例"""
         start_time = time.time()
@@ -166,8 +209,16 @@ class BatchTestEvaluator:
             result.ir = ir
             result.success = True
             
+            # 创建state对象用于RAG评估
+            state = {
+                'question': test_case.question,
+                'kb_entities': self._create_mock_kb_entities(test_case.expected_rag_entities) if test_case.expected_rag_entities else [],
+                'concepts': getattr(rewritten_query, 'concepts', []),
+                'q2q': rewritten_query.model_dump() if hasattr(rewritten_query, 'model_dump') else {}
+            }
+            
             # 评估RAG相关指标
-            self._evaluate_rag_metrics(test_case, rewritten_query, result)
+            self._evaluate_rag_metrics(test_case, rewritten_query, state, result)
             
             return result
             
@@ -193,42 +244,128 @@ class BatchTestEvaluator:
                 generated_sql=None  # 异常情况下没有生成SQL
             )
     
-    def _evaluate_rag_metrics(self, test_case: TestCase, rewritten_query, result: TestResult):
-        """基于向量索引的两段式RAG指标评估（带调试）"""
+    def _evaluate_rag_metrics(self, test_case: TestCase, rewritten_query, state: Dict[str, Any], result: TestResult):
+        """分阶段RAG指标评估"""
         try:
-            # 获取RAG信息
+            # === Q2Q阶段RAG评估 ===
+            print("\n[DEBUG] ========== Q2Q Stage RAG Evaluation ==========")
             rag_context = getattr(rewritten_query, 'rag_context', None)
             rag_fragments = getattr(rewritten_query, 'rag_fragments', [])
             
-            print(f"[DEBUG] RAG fragments count: {len(rag_fragments)}")
+            print(f"[DEBUG] Q2Q RAG fragments count: {len(rag_fragments)}")
             if rag_fragments:
                 print(f"[DEBUG] First fragment keys: {list(rag_fragments[0].keys())}")
                 print(f"[DEBUG] First fragment entity_type: {rag_fragments[0].get('entity_type', 'N/A')}")
             
+            # Q2Q阶段评估
+            q2q_stage1_metrics = self._evaluate_stage1_metric_recall_with_vector(test_case, rag_fragments)
+            q2q_stage2_metrics = self._evaluate_stage2_semantic_fragments(test_case, rag_fragments)
+            
+            # 保存Q2Q阶段指标
+            result.q2q_rag_recall_rate = q2q_stage1_metrics['metric_recall_rate']
+            result.q2q_rag_precision_rate = q2q_stage1_metrics['metric_precision_rate']
+            result.q2q_rag_entity_coverage = q2q_stage1_metrics['metric_coverage']
+            result.q2q_rag_concept_coverage = q2q_stage2_metrics['knowledge_completeness']
+            result.q2q_rag_relevance_score = q2q_stage2_metrics['semantic_relevance']
+            result.q2q_rag_fragment_count = len(rag_fragments) if rag_fragments else 0
+            
+            print(f"[DEBUG] Q2Q Stage - Recall: {result.q2q_rag_recall_rate:.2%}, Precision: {result.q2q_rag_precision_rate:.2%}")
+            
+            # === Retrieve阶段RAG评估 ===
+            print("\n[DEBUG] ========== Retrieve Stage RAG Evaluation ==========")
+            kb_entities = state.get('kb_entities', [])
+            print(f"[DEBUG] Retrieve RAG entities count: {len(kb_entities)}")
+            
+            # Retrieve阶段评估
+            retrieve_metrics = self._evaluate_retrieve_stage_rag(test_case, kb_entities)
+            
+            # 保存Retrieve阶段指标
+            result.retrieve_rag_recall_rate = retrieve_metrics['entity_recall_rate']
+            result.retrieve_rag_precision_rate = retrieve_metrics['entity_precision_rate']
+            result.retrieve_rag_relevance_score = retrieve_metrics['entity_relevance']
+            result.retrieve_rag_fragment_count = len(kb_entities) if kb_entities else 0
+            result.retrieve_rag_entity_coverage = retrieve_metrics['entity_coverage']
+            
+            print(f"[DEBUG] Retrieve Stage - Recall: {result.retrieve_rag_recall_rate:.2%}, Precision: {result.retrieve_rag_precision_rate:.2%}")
+            
+            # === 计算综合RAG指标 ===
+            result.rag_recall_rate = (result.q2q_rag_recall_rate + result.retrieve_rag_recall_rate) / 2
+            result.rag_precision_rate = (result.q2q_rag_precision_rate + result.retrieve_rag_precision_rate) / 2
+            result.rag_relevance_score = (result.q2q_rag_relevance_score + result.retrieve_rag_relevance_score) / 2
+            result.rag_fragment_count = result.q2q_rag_fragment_count + result.retrieve_rag_fragment_count
+            result.rag_entity_coverage = max(result.q2q_rag_entity_coverage or 0, result.retrieve_rag_entity_coverage or 0)
+            result.rag_concept_coverage = result.q2q_rag_concept_coverage
+            
+            print(f"\n[DEBUG] Combined RAG - Recall: {result.rag_recall_rate:.2%}, Precision: {result.rag_precision_rate:.2%}")
+            
+            # 保存RAG内容用于调试
             result.rag_context = rag_context
             result.rag_fragments = rag_fragments
-            result.rag_fragment_count = len(rag_fragments) if rag_fragments else 0
-            
-            # 第一段：基于向量索引的指标召回评估
-            stage1_metrics = self._evaluate_stage1_metric_recall_with_vector(test_case, rag_fragments)
-            
-            # 第二段：语义知识片段评估
-            stage2_metrics = self._evaluate_stage2_semantic_fragments(test_case, rag_fragments)
-            
-            # 合并指标
-            result.rag_recall_rate = stage1_metrics['metric_recall_rate']
-            result.rag_precision_rate = stage1_metrics['metric_precision_rate']
-            result.rag_entity_coverage = stage1_metrics['metric_coverage']
-            result.rag_concept_coverage = stage2_metrics['knowledge_completeness']
-            result.rag_relevance_score = stage2_metrics['semantic_relevance']
-            
-            print(f"[DEBUG] Final RAG metrics - Recall: {result.rag_recall_rate:.2%}, Precision: {result.rag_precision_rate:.2%}")
             
         except Exception as e:
             print(f"RAG evaluation error: {str(e)}")
+            # 设置默认值
+            result.q2q_rag_recall_rate = 0.0
+            result.q2q_rag_precision_rate = 0.0
+            result.retrieve_rag_recall_rate = 0.0
+            result.retrieve_rag_precision_rate = 0.0
             result.rag_recall_rate = 0.0
             result.rag_precision_rate = 0.0
-            result.rag_relevance_score = 0.0
+    
+    def _evaluate_retrieve_stage_rag(self, test_case: TestCase, kb_entities: List[Dict]) -> Dict[str, float]:
+        """评估Retrieve阶段的RAG性能"""
+        metrics = {
+            'entity_recall_rate': 0.0,
+            'entity_precision_rate': 0.0,
+            'entity_relevance': 0.0,
+            'entity_coverage': 0.0
+        }
+        
+        if not test_case.expected_rag_entities:
+            # 没有期望实体，跳过评估
+            return metrics
+        
+        expected_entities = set(e.lower() for e in test_case.expected_rag_entities)
+        retrieved_entities = set()
+        
+        # 从kb_entities中提取实体
+        for entity in kb_entities:
+            if isinstance(entity, dict):
+                # 优先从metadata中获取canonical_name
+                metadata = entity.get('metadata', {})
+                entity_name = metadata.get('canonical_name') or entity.get('canonical_name') or entity.get('name') or entity.get('entity', '')
+            elif isinstance(entity, str):
+                entity_name = entity
+            else:
+                continue
+            
+            if entity_name:
+                retrieved_entities.add(entity_name.lower())
+        
+        # 计算召回率
+        if expected_entities:
+            correct_entities = expected_entities & retrieved_entities
+            metrics['entity_recall_rate'] = len(correct_entities) / len(expected_entities)
+            metrics['entity_coverage'] = len(correct_entities) / len(expected_entities)
+        
+        # 计算精确率
+        if retrieved_entities:
+            correct_entities = expected_entities & retrieved_entities
+            metrics['entity_precision_rate'] = len(correct_entities) / len(retrieved_entities)
+        
+        # 计算相关性（基于实体匹配度）
+        if kb_entities:
+            relevance_scores = []
+            for entity in kb_entities:
+                if isinstance(entity, dict):
+                    score = entity.get('score', 0.0)
+                    if isinstance(score, (int, float)):
+                        relevance_scores.append(float(score))
+            
+            if relevance_scores:
+                metrics['entity_relevance'] = sum(relevance_scores) / len(relevance_scores)
+        
+        return metrics
     
     def _extract_entities_from_rag(self, rag_context: str, rag_fragments: List[Dict]) -> set:
         """从RAG内容中提取实体"""
@@ -286,50 +423,34 @@ class BatchTestEvaluator:
         question_lower = question.lower()
         context_lower = rag_context.lower()
         
-        # 扩展的关键指标词汇（包含更多同义词）
-        metric_keywords = [
-            # 核心指标
-            'mau', 'dau', 'uv', 'pv', 'gmv', 'aov',
-            # 中文全称
-            '月活跃用户', '日活跃用户', '独立访客', '页面访问', '成交总额', '客单价',
-            # 中文简称
-            '月活', '日活', '访客', '浏览量', '访问量',
-            # 业务同义词
-            '活跃用户', '用户活跃度', '活跃度统计', '用户数', '访问次数', '页面浏览量',
-            '独立用户', '独立用户数', '唯一访客', '唯一用户'
-        ]
+        # 使用配置的关键指标词汇
+        all_metric_keywords = []
+        for category, keywords in METRIC_KEYWORDS.items():
+            all_metric_keywords.extend(keywords)
         
         # 智能指标匹配（支持部分匹配和同义词）
         metric_matches = 0
-        for keyword in metric_keywords:
+        for keyword in all_metric_keywords:
             keyword_lower = keyword.lower()
             if keyword_lower in question_lower and keyword_lower in context_lower:
                 metric_matches += 1
-                # 核心指标额外权重
-                if keyword_lower in ['mau', 'dau', 'uv', 'pv', 'gmv', 'aov']:
-                    metric_matches += 0.8
-                # 中文全称额外权重
-                elif keyword_lower in ['月活跃用户', '日活跃用户', '独立访客', '页面访问']:
-                    metric_matches += 0.6
+                # 使用配置的权重
+                if keyword_lower in METRIC_KEYWORDS['core']:
+                    metric_matches += WEIGHT_CONFIG['metric_matching']['core_metrics']
+                elif keyword_lower in METRIC_KEYWORDS['chinese_full']:
+                    metric_matches += WEIGHT_CONFIG['metric_matching']['chinese_full']
+                else:
+                    metric_matches += WEIGHT_CONFIG['metric_matching']['default']
         
-        # 扩展的时间关键词
-        time_keywords = [
-            '年', '月', '日', '季度', '周', '小时', '时段',
-            'year', 'month', 'day', 'quarter', 'week', 'hour',
-            '最近', '今年', '去年', '本月', '上月', '本周', '上周',
-            '2025', '2024', '2023', 'q1', 'q2', 'q3', 'q4'
-        ]
+        # 使用配置的时间关键词
+        time_keywords = TIME_KEYWORDS
         time_matches = 0
         for keyword in time_keywords:
             if keyword in question and keyword in context_lower:
                 time_matches += 1
         
-        # 扩展的查询相关词汇
-        query_keywords = [
-            '查询', '统计', '分析', '对比', '趋势', '分布', '排名',
-            'query', 'count', 'analysis', 'compare', 'trend', 'distribution',
-            '数据', '报表', '报告', '指标', '维度', '分组', '聚合'
-        ]
+        # 使用配置的查询相关词汇
+        query_keywords = QUERY_KEYWORDS
         query_matches = 0
         for keyword in query_keywords:
             if keyword in question_lower and keyword in context_lower:
@@ -337,7 +458,7 @@ class BatchTestEvaluator:
         
         # 优化权重分配（更重视指标匹配）
         total_score = metric_matches * 0.7 + time_matches * 0.2 + query_matches * 0.1
-        max_possible_score = len(metric_keywords) * 0.7 + len(time_keywords) * 0.2 + len(query_keywords) * 0.1
+        max_possible_score = len(all_metric_keywords) * 0.7 + len(time_keywords) * 0.2 + len(query_keywords) * 0.1
         
         if max_possible_score == 0:
             return 0.0
@@ -349,15 +470,17 @@ class BatchTestEvaluator:
         """从问题中提取实体"""
         entities = set()
         
-        # 提取指标相关实体
-        metric_keywords = ['mau', 'dau', 'uv', 'pv', '月活跃用户', '日活跃用户', '独立访客', '页面访问']
-        for keyword in metric_keywords:
+        # 使用配置提取指标相关实体
+        all_metric_keywords = []
+        for category, keywords in METRIC_KEYWORDS.items():
+            all_metric_keywords.extend(keywords)
+        
+        for keyword in all_metric_keywords:
             if keyword.lower() in question.lower():
                 entities.add(keyword.lower())
         
-        # 提取时间相关实体
-        time_keywords = ['年', '月', '日', '季度', '周', 'year', 'month', 'day', 'quarter', 'week']
-        for keyword in time_keywords:
+        # 使用配置提取时间相关实体
+        for keyword in TIME_KEYWORDS:
             if keyword in question:
                 entities.add(keyword)
         
@@ -416,19 +539,20 @@ class BatchTestEvaluator:
                 if metric in question_lower:
                     keywords.append(metric)
             
-            # 4. 直接匹配常见指标缩写（作为fallback）
-            direct_matches = {
-                'mau': ['mau', 'MAU'],
-                'dau': ['dau', 'DAU'],
-                'uv': ['uv', 'UV'],
-                'pv': ['pv', 'PV'],
-                'gmv': ['gmv', 'GMV']
-            }
-            
-            for metric_key, aliases in direct_matches.items():
-                for alias in aliases:
-                    if alias in question or alias.lower() in question_lower:
-                        keywords.append(alias)
+            # 4. 使用MetricRegistry动态获取指标别名
+            registry = MetricRegistry()
+            for metric_name in CORE_METRICS:
+                # 尝试从registry获取指标定义
+                metric_def = registry.resolve_from_signals([metric_name])
+                if metric_def:
+                    # 添加指标名称和常见别名
+                    keywords.extend([metric_name, metric_name.upper()])
+                    # 如果有别名，也添加
+                    if hasattr(metric_def, 'aliases') and metric_def.aliases:
+                        keywords.extend(metric_def.aliases)
+                else:
+                    # 如果registry中没有，使用默认别名
+                    keywords.extend([metric_name, metric_name.upper()])
             
             print(f"[DEBUG] Extracted keywords: {keywords}")
             
@@ -581,11 +705,12 @@ class BatchTestEvaluator:
         
         keyword_match = self._calculate_relevance_score(test_case.question, rag_context)
         
-        # 混合计算relevance score（平衡权重：向量相似度60%，关键词匹配40%）
-        semantic_relevance = vector_similarity * 0.6 + keyword_match * 0.4
+        # 使用配置的权重计算relevance score
+        semantic_relevance = (vector_similarity * WEIGHT_CONFIG['relevance']['vector_similarity'] + 
+                             keyword_match * WEIGHT_CONFIG['relevance']['keyword_match'])
         
-        # 计算片段质量（基于分数分布）
-        high_quality_fragments = sum(1 for score in scores if score > 0.7)
+        # 使用配置的阈值计算片段质量
+        high_quality_fragments = sum(1 for score in scores if score > QUALITY_THRESHOLDS['high_quality_score'])
         fragment_quality = high_quality_fragments / len(scores) if scores else 0.0
         
         # 计算知识完整性（基于片段类型多样性）
@@ -596,8 +721,8 @@ class BatchTestEvaluator:
             if entity_type:
                 entity_types.add(entity_type)
         
-        # 期望的实体类型：metric, dimension, mapping
-        expected_types = {'metric', 'dimension', 'mapping'}
+        # 使用配置的期望实体类型
+        expected_types = set(EXPECTED_ENTITY_TYPES)
         knowledge_completeness = len(entity_types & expected_types) / len(expected_types)
         
         return {
@@ -908,14 +1033,37 @@ class BatchTestEvaluator:
         print(f"8. Group By Accuracy: {metrics['accuracy_metrics']['group_by_accuracy']:.2%}")
         print(f"9. Result Completeness: {metrics['accuracy_metrics']['result_completeness']:.2%}")
         
-        # RAG Related Metrics
-        if metrics['rag_metrics']:
-            print(f"10. RAG Average Recall Rate: {metrics['rag_metrics']['avg_recall_rate']:.2%}")
-            print(f"11. RAG Average Precision Rate: {metrics['rag_metrics']['avg_precision_rate']:.2%}")
-            print(f"12. RAG Average Relevance Score: {metrics['rag_metrics']['avg_relevance_score']:.2%}")
-            print(f"13. RAG Average Fragment Count: {metrics['rag_metrics']['avg_fragment_count']:.1f}")
-            print(f"14. RAG Entity Coverage: {metrics['rag_metrics']['avg_entity_coverage']:.2%}")
-            print(f"15. RAG Concept Coverage: {metrics['rag_metrics']['avg_concept_coverage']:.2%}")
+        # RAG Related Metrics (Two-Stage Evaluation)
+        print(f"\n=== RAG Performance (Two-Stage Evaluation) ===")
+        
+        # Q2Q阶段RAG
+        q2q_rag_results = [r for r in self.results if r.q2q_rag_recall_rate is not None]
+        if q2q_rag_results:
+            avg_q2q_recall = sum(r.q2q_rag_recall_rate for r in q2q_rag_results) / len(q2q_rag_results)
+            avg_q2q_precision = sum(r.q2q_rag_precision_rate for r in q2q_rag_results) / len(q2q_rag_results)
+            avg_q2q_relevance = sum(r.q2q_rag_relevance_score for r in q2q_rag_results) / len(q2q_rag_results)
+            avg_q2q_entity_coverage = sum(r.q2q_rag_entity_coverage or 0 for r in q2q_rag_results) / len(q2q_rag_results)
+            avg_q2q_concept_coverage = sum(r.q2q_rag_concept_coverage or 0 for r in q2q_rag_results) / len(q2q_rag_results)
+            
+            print(f"Q2Q Stage RAG Recall Rate: {avg_q2q_recall:.2%}")
+            print(f"Q2Q Stage RAG Precision Rate: {avg_q2q_precision:.2%}")
+            print(f"Q2Q Stage RAG Relevance Score: {avg_q2q_relevance:.2%}")
+            print(f"Q2Q Stage RAG Entity Coverage: {avg_q2q_entity_coverage:.2%}")
+            print(f"Q2Q Stage RAG Concept Coverage: {avg_q2q_concept_coverage:.2%}")
+
+        # Retrieve阶段RAG
+        retrieve_rag_results = [r for r in self.results if r.retrieve_rag_recall_rate is not None]
+        if retrieve_rag_results:
+            avg_retrieve_recall = sum(r.retrieve_rag_recall_rate for r in retrieve_rag_results) / len(retrieve_rag_results)
+            avg_retrieve_precision = sum(r.retrieve_rag_precision_rate for r in retrieve_rag_results) / len(retrieve_rag_results)
+            avg_retrieve_relevance = sum(r.retrieve_rag_relevance_score or 0 for r in retrieve_rag_results) / len(retrieve_rag_results)
+            avg_retrieve_entity_coverage = sum(r.retrieve_rag_entity_coverage or 0 for r in retrieve_rag_results) / len(retrieve_rag_results)
+            
+            print(f"\nRetrieve Stage RAG Recall Rate: {avg_retrieve_recall:.2%}")
+            print(f"Retrieve Stage RAG Precision Rate: {avg_retrieve_precision:.2%}")
+            print(f"Retrieve Stage RAG Relevance Score: {avg_retrieve_relevance:.2%}")
+            print(f"Retrieve Stage RAG Entity Coverage: {avg_retrieve_entity_coverage:.2%}")
+
         
         # Component Performance Breakdown
         print(f"\n[COMPONENT PERFORMANCE BREAKDOWN]:")
