@@ -21,7 +21,8 @@ from datainsight_agent.components.pipeline import SimplePipeline
 from datainsight_agent.services.db_bootstrap import init_mysql_min
 from test_evaluation_config import (
     CORE_METRICS, METRIC_KEYWORDS, TIME_KEYWORDS, QUERY_KEYWORDS,
-    WEIGHT_CONFIG, QUALITY_THRESHOLDS, MOCK_DATA_CONFIG, EXPECTED_ENTITY_TYPES
+    WEIGHT_CONFIG, QUALITY_THRESHOLDS, MOCK_DATA_CONFIG, EXPECTED_ENTITY_TYPES,
+    QUESTION_TYPE_ENTITY_MAPPING, BUSINESS_CONCEPT_KEYWORDS, CONCEPT_COVERAGE_WEIGHTS
 )
 from datainsight_agent.config.manager import ConfigManager
 
@@ -661,7 +662,7 @@ class BatchTestEvaluator:
 
     def _get_expected_entity_types_for_question(self, question: str) -> set:
         """根据问题类型动态确定期望的实体类型"""
-        from test_evaluation_config import QUESTION_TYPE_ENTITY_MAPPING
+        from test_evaluation_config import QUESTION_TYPE_ENTITY_MAPPING, BUSINESS_CONCEPT_KEYWORDS
         
         question_lower = question.lower()
         
@@ -673,17 +674,26 @@ class BatchTestEvaluator:
         mapping_keywords = ['映射', '关系', '关联', '规则', '公式', '计算', '逻辑']
         has_mapping = any(keyword in question for keyword in mapping_keywords)
         
+        # 检查是否包含概念相关词汇
+        concept_keywords = []
+        for concept_type, keywords in BUSINESS_CONCEPT_KEYWORDS.items():
+            if any(keyword in question for keyword in keywords):
+                concept_keywords.append(concept_type)
+        has_concept = len(concept_keywords) > 0
+        
         # 检查是否包含指标相关词汇
         metric_keywords = ['mau', 'dau', 'uv', 'pv', 'gmv', 'aov', '活跃', '用户', '访问', '浏览', '成交']
         has_metric = any(keyword in question_lower for keyword in metric_keywords)
         
         # 根据问题内容确定期望的实体类型
-        if has_mapping and has_dimension and has_metric:
+        if has_mapping and has_dimension and has_metric and has_concept:
             return set(QUESTION_TYPE_ENTITY_MAPPING['comprehensive_query'])
         elif has_dimension and has_metric:
             return set(QUESTION_TYPE_ENTITY_MAPPING['mixed_query'])
         elif has_mapping:
             return set(QUESTION_TYPE_ENTITY_MAPPING['mapping_query'])
+        elif has_concept:
+            return set(QUESTION_TYPE_ENTITY_MAPPING['concept_query'])
         elif has_dimension:
             return set(QUESTION_TYPE_ENTITY_MAPPING['dimension_query'])
         elif has_metric:
@@ -747,13 +757,39 @@ class BatchTestEvaluator:
         
         # 根据问题类型动态调整期望实体类型
         expected_types = self._get_expected_entity_types_for_question(test_case.question)
-        knowledge_completeness = len(entity_types & expected_types) / len(expected_types) if expected_types else 0.0
+        
+        # 使用权重计算概念覆盖率
+        knowledge_completeness = self._calculate_concept_coverage_with_weights(rag_fragments, list(expected_types))
         
         return {
             'semantic_relevance': semantic_relevance,
             'fragment_quality': fragment_quality,
             'knowledge_completeness': knowledge_completeness
         }
+    
+    def _calculate_concept_coverage_with_weights(self, rag_fragments: List[Dict], expected_types: List[str]) -> float:
+        """使用权重计算概念覆盖率"""
+        if not rag_fragments or not expected_types:
+            return 0.0
+        
+        # 统计各类型实体数量
+        type_counts = {}
+        for fragment in rag_fragments:
+            entity_type = fragment.get('entity_type', 'unknown')
+            type_counts[entity_type] = type_counts.get(entity_type, 0) + 1
+        
+        # 计算加权覆盖率
+        total_weighted_score = 0.0
+        total_expected_weight = 0.0
+        
+        for expected_type in expected_types:
+            weight = CONCEPT_COVERAGE_WEIGHTS.get(expected_type, 0.1)
+            total_expected_weight += weight
+            
+            if expected_type in type_counts and type_counts[expected_type] > 0:
+                total_weighted_score += weight
+        
+        return total_weighted_score / total_expected_weight if total_expected_weight > 0 else 0.0
     
     def _evaluate_result(self, test_case: TestCase, rewritten_query, ir, generated_sql: str, actual_result: List[Dict]) -> TestResult:
         """评估测试结果"""

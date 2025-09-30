@@ -2,78 +2,491 @@
   {
     "id": "mapping_metric_dimension",
     "canonical_name": "指标维度映射",
-    "aliases": ["metric_dimension_mapping", "指标维度关系", "指标维度关联"],
+    "aliases": [
+      "metric_dimension_mapping",
+      "指标维度关系",
+      "指标维度关联"
+    ],
     "type": "mapping",
-    "what": {"description": "指标与维度的关联关系，定义哪些维度可以用于哪些指标的聚合分析"},
-    "how": {"data_source": {"layer": "MAPPING", "table": "metric_dimension_mapping", "column": "mapping_id"}},
+    "what": {
+      "description": "指标与维度的关联关系，定义哪些维度可以用于哪些指标的聚合分析"
+    },
+    "how": {
+      "data_source": {
+        "layer": "MAPPING",
+        "table": "metric_dimension_mapping",
+        "column": "mapping_id"
+      }
+    },
     "mappings": [
-      {"metric": "mau", "dimensions": ["channel", "region", "device_type", "user_level"]},
-      {"metric": "dau", "dimensions": ["channel", "region", "device_type", "user_level", "platform"]},
-      {"metric": "uv", "dimensions": ["channel", "region", "device_type", "user_level", "platform"]},
-      {"metric": "pv", "dimensions": ["channel", "region", "device_type", "platform", "page_type"]},
-      {"metric": "gmv", "dimensions": ["channel", "region", "device_type", "user_level", "product_category"]},
-      {"metric": "aov", "dimensions": ["channel", "region", "device_type", "user_level", "payment_method"]}
+      {
+        "metric": "mau",
+        "dimensions": [
+          "channel",
+          "region",
+          "device_type",
+          "user_level"
+        ]
+      },
+      {
+        "metric": "dau",
+        "dimensions": [
+          "channel",
+          "region",
+          "device_type",
+          "user_level",
+          "platform"
+        ]
+      },
+      {
+        "metric": "uv",
+        "dimensions": [
+          "channel",
+          "region",
+          "device_type",
+          "user_level",
+          "platform"
+        ]
+      },
+      {
+        "metric": "pv",
+        "dimensions": [
+          "channel",
+          "region",
+          "device_type",
+          "platform",
+          "page_type"
+        ]
+      },
+      {
+        "metric": "gmv",
+        "dimensions": [
+          "channel",
+          "region",
+          "device_type",
+          "user_level",
+          "product_category"
+        ]
+      },
+      {
+        "metric": "aov",
+        "dimensions": [
+          "channel",
+          "region",
+          "device_type",
+          "user_level",
+          "payment_method"
+        ]
+      }
     ]
   },
   {
     "id": "mapping_time_aggregation",
     "canonical_name": "时间聚合映射",
-    "aliases": ["time_aggregation_mapping", "时间聚合关系", "时间维度映射"],
+    "aliases": [
+      "time_aggregation_mapping",
+      "时间聚合关系",
+      "时间维度映射"
+    ],
     "type": "mapping",
-    "what": {"description": "时间维度与聚合粒度的映射关系，定义不同时间范围的聚合方式"},
-    "how": {"data_source": {"layer": "MAPPING", "table": "time_aggregation_mapping", "column": "mapping_id"}},
+    "what": {
+      "description": "时间维度与聚合粒度的映射关系，定义不同时间范围的聚合方式"
+    },
+    "how": {
+      "data_source": {
+        "layer": "MAPPING",
+        "table": "time_aggregation_mapping",
+        "column": "mapping_id"
+      }
+    },
     "mappings": [
-      {"time_range": "daily", "aggregation": "day", "format": "YYYY-MM-DD"},
-      {"time_range": "weekly", "aggregation": "week", "format": "YYYY-WW"},
-      {"time_range": "monthly", "aggregation": "month", "format": "YYYY-MM"},
-      {"time_range": "quarterly", "aggregation": "quarter", "format": "YYYY-Q"},
-      {"time_range": "yearly", "aggregation": "year", "format": "YYYY"}
+      {
+        "time_range": "daily",
+        "aggregation": "day",
+        "format": "YYYY-MM-DD"
+      },
+      {
+        "time_range": "weekly",
+        "aggregation": "week",
+        "format": "YYYY-WW"
+      },
+      {
+        "time_range": "monthly",
+        "aggregation": "month",
+        "format": "YYYY-MM"
+      },
+      {
+        "time_range": "quarterly",
+        "aggregation": "quarter",
+        "format": "YYYY-Q"
+      },
+      {
+        "time_range": "yearly",
+        "aggregation": "year",
+        "format": "YYYY"
+      }
     ]
   },
   {
     "id": "mapping_business_rules",
     "canonical_name": "业务规则映射",
-    "aliases": ["business_rules_mapping", "业务规则关系", "业务逻辑映射"],
+    "aliases": [
+      "business_rules_mapping",
+      "业务规则关系",
+      "业务逻辑映射"
+    ],
     "type": "mapping",
-    "what": {"description": "业务规则与数据字段的映射关系，定义业务逻辑的计算规则"},
-    "how": {"data_source": {"layer": "MAPPING", "table": "business_rules_mapping", "column": "mapping_id"}},
+    "what": {
+      "description": "业务规则与数据字段的映射关系，定义业务逻辑的计算规则"
+    },
+    "how": {
+      "data_source": {
+        "layer": "MAPPING",
+        "table": "business_rules_mapping",
+        "column": "mapping_id"
+      }
+    },
     "mappings": [
-      {"rule": "active_user", "condition": "last_login_date >= current_date - 30", "field": "user_id"},
-      {"rule": "new_user", "condition": "registration_date >= current_date - 7", "field": "user_id"},
-      {"rule": "high_value_user", "condition": "total_gmv >= 1000", "field": "user_id"},
-      {"rule": "mobile_user", "condition": "device_type IN ('iOS', 'Android')", "field": "user_id"},
-      {"rule": "web_user", "condition": "device_type = 'Web'", "field": "user_id"}
+      {
+        "rule": "active_user",
+        "condition": "last_login_date >= current_date - 30",
+        "field": "user_id"
+      },
+      {
+        "rule": "new_user",
+        "condition": "registration_date >= current_date - 7",
+        "field": "user_id"
+      },
+      {
+        "rule": "high_value_user",
+        "condition": "total_gmv >= 1000",
+        "field": "user_id"
+      },
+      {
+        "rule": "mobile_user",
+        "condition": "device_type IN ('iOS', 'Android')",
+        "field": "user_id"
+      },
+      {
+        "rule": "web_user",
+        "condition": "device_type = 'Web'",
+        "field": "user_id"
+      }
     ]
   },
   {
     "id": "mapping_data_sources",
     "canonical_name": "数据源映射",
-    "aliases": ["data_source_mapping", "数据源关系", "数据表映射"],
+    "aliases": [
+      "data_source_mapping",
+      "数据源关系",
+      "数据表映射"
+    ],
     "type": "mapping",
-    "what": {"description": "业务指标与数据源的映射关系，定义指标数据的来源表"},
-    "how": {"data_source": {"layer": "MAPPING", "table": "data_source_mapping", "column": "mapping_id"}},
+    "what": {
+      "description": "业务指标与数据源的映射关系，定义指标数据的来源表"
+    },
+    "how": {
+      "data_source": {
+        "layer": "MAPPING",
+        "table": "data_source_mapping",
+        "column": "mapping_id"
+      }
+    },
     "mappings": [
-      {"metric": "mau", "source_table": "dws_user_activity", "key_field": "user_id", "time_field": "month"},
-      {"metric": "dau", "source_table": "dws_user_activity", "key_field": "user_id", "time_field": "day"},
-      {"metric": "uv", "source_table": "dws_user_activity", "key_field": "user_id", "time_field": "day"},
-      {"metric": "pv", "source_table": "dws_page_views", "key_field": "page_view_id", "time_field": "created_at"},
-      {"metric": "gmv", "source_table": "dws_orders", "key_field": "order_id", "time_field": "order_date"},
-      {"metric": "aov", "source_table": "dws_orders", "key_field": "order_id", "time_field": "order_date"}
+      {
+        "metric": "mau",
+        "source_table": "dws_user_activity",
+        "key_field": "user_id",
+        "time_field": "month"
+      },
+      {
+        "metric": "dau",
+        "source_table": "dws_user_activity",
+        "key_field": "user_id",
+        "time_field": "day"
+      },
+      {
+        "metric": "uv",
+        "source_table": "dws_user_activity",
+        "key_field": "user_id",
+        "time_field": "day"
+      },
+      {
+        "metric": "pv",
+        "source_table": "dws_page_views",
+        "key_field": "page_view_id",
+        "time_field": "created_at"
+      },
+      {
+        "metric": "gmv",
+        "source_table": "dws_orders",
+        "key_field": "order_id",
+        "time_field": "order_date"
+      },
+      {
+        "metric": "aov",
+        "source_table": "dws_orders",
+        "key_field": "order_id",
+        "time_field": "order_date"
+      }
     ]
   },
   {
     "id": "mapping_calculation_formulas",
     "canonical_name": "计算公式映射",
-    "aliases": ["calculation_formulas_mapping", "计算公式关系", "计算逻辑映射"],
+    "aliases": [
+      "calculation_formulas_mapping",
+      "计算公式关系",
+      "计算逻辑映射"
+    ],
     "type": "mapping",
-    "what": {"description": "指标计算公式的映射关系，定义复杂指标的计算逻辑"},
-    "how": {"data_source": {"layer": "MAPPING", "table": "calculation_formulas_mapping", "column": "mapping_id"}},
+    "what": {
+      "description": "指标计算公式的映射关系，定义复杂指标的计算逻辑"
+    },
+    "how": {
+      "data_source": {
+        "layer": "MAPPING",
+        "table": "calculation_formulas_mapping",
+        "column": "mapping_id"
+      }
+    },
     "mappings": [
-      {"metric": "retention_rate", "formula": "retained_users / total_users * 100", "dependencies": ["retained_users", "total_users"]},
-      {"metric": "conversion_rate", "formula": "converted_users / total_visitors * 100", "dependencies": ["converted_users", "total_visitors"]},
-      {"metric": "bounce_rate", "formula": "single_page_sessions / total_sessions * 100", "dependencies": ["single_page_sessions", "total_sessions"]},
-      {"metric": "engagement_rate", "formula": "engaged_users / active_users * 100", "dependencies": ["engaged_users", "active_users"]},
-      {"metric": "churn_rate", "formula": "churned_users / total_users * 100", "dependencies": ["churned_users", "total_users"]}
+      {
+        "metric": "retention_rate",
+        "formula": "retained_users / total_users * 100",
+        "dependencies": [
+          "retained_users",
+          "total_users"
+        ]
+      },
+      {
+        "metric": "conversion_rate",
+        "formula": "converted_users / total_visitors * 100",
+        "dependencies": [
+          "converted_users",
+          "total_visitors"
+        ]
+      },
+      {
+        "metric": "bounce_rate",
+        "formula": "single_page_sessions / total_sessions * 100",
+        "dependencies": [
+          "single_page_sessions",
+          "total_sessions"
+        ]
+      },
+      {
+        "metric": "engagement_rate",
+        "formula": "engaged_users / active_users * 100",
+        "dependencies": [
+          "engaged_users",
+          "active_users"
+        ]
+      },
+      {
+        "metric": "churn_rate",
+        "formula": "churned_users / total_users * 100",
+        "dependencies": [
+          "churned_users",
+          "total_users"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mapping_user_lifecycle",
+    "canonical_name": "用户生命周期映射",
+    "aliases": [
+      "user_lifecycle_mapping",
+      "用户生命周期关系",
+      "用户周期映射"
+    ],
+    "type": "mapping",
+    "what": {
+      "description": "用户生命周期阶段与指标的映射关系，定义不同阶段的关键指标"
+    },
+    "how": {
+      "data_source": {
+        "layer": "MAPPING",
+        "table": "user_lifecycle_mapping",
+        "column": "mapping_id"
+      }
+    },
+    "mappings": [
+      {
+        "lifecycle_stage": "potential",
+        "key_metrics": [
+          "uv",
+          "pv",
+          "bounce_rate"
+        ],
+        "goal": "attract and engage"
+      },
+      {
+        "lifecycle_stage": "new",
+        "key_metrics": [
+          "registration_count",
+          "activation_rate",
+          "first_purchase_rate"
+        ],
+        "goal": "activate and convert"
+      },
+      {
+        "lifecycle_stage": "active",
+        "key_metrics": [
+          "dau",
+          "mau",
+          "retention_rate",
+          "engagement_score"
+        ],
+        "goal": "retain and engage"
+      },
+      {
+        "lifecycle_stage": "dormant",
+        "key_metrics": [
+          "churn_risk_score",
+          "days_since_last_visit"
+        ],
+        "goal": "re-engage"
+      },
+      {
+        "lifecycle_stage": "churned",
+        "key_metrics": [
+          "churn_count",
+          "churn_rate",
+          "churn_reason"
+        ],
+        "goal": "win back"
+      }
+    ]
+  },
+  {
+    "id": "mapping_product_associations",
+    "canonical_name": "产品关联映射",
+    "aliases": [
+      "product_association_mapping",
+      "产品关联关系",
+      "商品关联映射"
+    ],
+    "type": "mapping",
+    "what": {
+      "description": "产品关联关系映射，定义产品间的关联分析和推荐逻辑"
+    },
+    "how": {
+      "data_source": {
+        "layer": "MAPPING",
+        "table": "product_association_mapping",
+        "column": "mapping_id"
+      }
+    },
+    "mappings": [
+      {
+        "association_type": "frequently_bought_together",
+        "products": [
+          "product_a",
+          "product_b"
+        ],
+        "confidence": 0.85
+      },
+      {
+        "association_type": "complementary",
+        "products": [
+          "product_c",
+          "product_d"
+        ],
+        "confidence": 0.75
+      },
+      {
+        "association_type": "substitute",
+        "products": [
+          "product_e",
+          "product_f"
+        ],
+        "confidence": 0.65
+      },
+      {
+        "association_type": "upgrade",
+        "products": [
+          "product_g",
+          "product_h"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "association_type": "cross_sell",
+        "products": [
+          "product_i",
+          "product_j"
+        ],
+        "confidence": 0.8
+      }
+    ]
+  },
+  {
+    "id": "mapping_marketing_funnel",
+    "canonical_name": "营销漏斗映射",
+    "aliases": [
+      "marketing_funnel_mapping",
+      "营销漏斗关系",
+      "转化漏斗映射"
+    ],
+    "type": "mapping",
+    "what": {
+      "description": "营销漏斗各阶段与指标的映射关系，定义漏斗转化分析"
+    },
+    "how": {
+      "data_source": {
+        "layer": "MAPPING",
+        "table": "marketing_funnel_mapping",
+        "column": "mapping_id"
+      }
+    },
+    "mappings": [
+      {
+        "funnel_stage": "awareness",
+        "metrics": [
+          "impressions",
+          "reach",
+          "uv"
+        ],
+        "conversion_to_next": "impression_to_click_rate"
+      },
+      {
+        "funnel_stage": "interest",
+        "metrics": [
+          "clicks",
+          "ctr",
+          "page_views"
+        ],
+        "conversion_to_next": "click_to_engagement_rate"
+      },
+      {
+        "funnel_stage": "consideration",
+        "metrics": [
+          "engagement_rate",
+          "time_on_site",
+          "pages_per_session"
+        ],
+        "conversion_to_next": "engagement_to_add_to_cart_rate"
+      },
+      {
+        "funnel_stage": "intent",
+        "metrics": [
+          "add_to_cart_count",
+          "cart_view"
+        ],
+        "conversion_to_next": "cart_to_purchase_rate"
+      },
+      {
+        "funnel_stage": "purchase",
+        "metrics": [
+          "orders",
+          "gmv",
+          "conversion_rate"
+        ],
+        "conversion_to_next": "purchase_to_repeat_rate"
+      }
     ]
   }
 ]

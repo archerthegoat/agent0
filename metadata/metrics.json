@@ -238,12 +238,13 @@
       "revenue",
       "营收",
       "GMV",
-      "交易额"
+      "交易额",
+      "营收额"
     ],
     "aggregation": {
       "function": "SUM",
       "field": "revenue_amount",
-      "alias": "total_revenue"
+      "alias": "revenue"
     },
     "filters": [],
     "type": "metric"
@@ -272,7 +273,8 @@
       "新用户数",
       "new_users",
       "新用户",
-      "新增用户"
+      "新增用户",
+      "用户数"
     ],
     "aggregation": {
       "function": "COUNT",
@@ -294,6 +296,7 @@
     "aliases": [
       "流失用户数",
       "churn_users",
+      "churned_users",
       "流失用户",
       "流失"
     ],
@@ -390,7 +393,8 @@
       "cac",
       "客户获取成本",
       "获客成本",
-      "用户获取成本"
+      "用户获取成本",
+      "客户获取成本对比"
     ],
     "aggregation": {
       "function": "AVG",
@@ -407,7 +411,8 @@
       "ROI",
       "roi",
       "投资回报率",
-      "投入产出比"
+      "投入产出比",
+      "ROI表现"
     ],
     "aggregation": {
       "function": "AVG",
@@ -423,13 +428,15 @@
     "aliases": [
       "页面浏览数/会话",
       "pages_per_session",
+      "page_views_per_session",
       "每会话页面数",
-      "页面深度"
+      "页面深度",
+      "PV/会话"
     ],
     "aggregation": {
       "function": "AVG",
       "field": "pages_per_session",
-      "alias": "pages_per_session"
+      "alias": "page_views_per_session"
     },
     "filters": [],
     "type": "metric"
@@ -440,6 +447,7 @@
     "aliases": [
       "回访率",
       "return_visitor_rate",
+      "return_rate",
       "回头客率",
       "复购率"
     ],
@@ -509,7 +517,10 @@
       "客户满意度",
       "customer_satisfaction",
       "用户满意度",
-      "满意度评分"
+      "满意度评分",
+      "CSAT",
+      "csat",
+      "客户满意度评分"
     ],
     "aggregation": {
       "function": "AVG",
@@ -567,6 +578,276 @@
       "function": "AVG",
       "field": "resolution_hours",
       "alias": "avg_resolution_time"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_repeat_purchase_rate",
+    "canonical_name": "复购率",
+    "aliases": [
+      "复购率",
+      "repeat_purchase_rate",
+      "重复购买率",
+      "回购率",
+      "repurchase_rate",
+      "复购率统计"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "is_repeat_purchase",
+      "alias": "repeat_purchase_rate"
+    },
+    "table_mapping": {
+      "table_name": "dws_orders",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_inventory_turnover",
+    "canonical_name": "库存周转率",
+    "aliases": [
+      "库存周转率",
+      "inventory_turnover",
+      "库存周转次数",
+      "存货周转率"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "turnover_ratio",
+      "alias": "inventory_turnover"
+    },
+    "table_mapping": {
+      "table_name": "dws_inventory",
+      "time_field": "date",
+      "time_format": "YYYY-MM-DD"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_refund_rate",
+    "canonical_name": "退款率",
+    "aliases": [
+      "退款率",
+      "refund_rate",
+      "退货率",
+      "退单率"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "is_refunded",
+      "alias": "refund_rate"
+    },
+    "table_mapping": {
+      "table_name": "dws_orders",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_email_open_rate",
+    "canonical_name": "邮件打开率",
+    "aliases": [
+      "邮件打开率",
+      "email_open_rate",
+      "邮件阅读率",
+      "EDM打开率",
+      "open_rate",
+      "邮件打开率统计"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "is_opened",
+      "alias": "email_open_rate"
+    },
+    "table_mapping": {
+      "table_name": "dws_email_campaign",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_email_click_rate",
+    "canonical_name": "邮件点击率",
+    "aliases": [
+      "邮件点击率",
+      "email_click_rate",
+      "EDM点击率",
+      "邮件互动率"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "is_clicked",
+      "alias": "email_click_rate"
+    },
+    "table_mapping": {
+      "table_name": "dws_email_campaign",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_app_crash_rate",
+    "canonical_name": "APP崩溃率",
+    "aliases": [
+      "APP崩溃率",
+      "app_crash_rate",
+      "应用崩溃率",
+      "闪退率",
+      "crash_rate",
+      "APP崩溃率统计"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "is_crashed",
+      "alias": "app_crash_rate"
+    },
+    "table_mapping": {
+      "table_name": "dws_app_performance",
+      "time_field": "month",
+      "time_format": "YYYY-MM"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_api_response_time",
+    "canonical_name": "API响应时间",
+    "aliases": [
+      "API响应时间",
+      "api_response_time",
+      "接口响应时长",
+      "API延迟"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "response_time_ms",
+      "alias": "avg_api_response_time"
+    },
+    "table_mapping": {
+      "table_name": "dws_api_performance",
+      "time_field": "request_time",
+      "time_format": "YYYY-MM-DD HH24:MI:SS"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_search_conversion_rate",
+    "canonical_name": "搜索转化率",
+    "aliases": [
+      "搜索转化率",
+      "search_conversion_rate",
+      "搜索成交率",
+      "搜索下单率"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "has_conversion",
+      "alias": "search_conversion_rate"
+    },
+    "table_mapping": {
+      "table_name": "dws_search_behavior",
+      "time_field": "search_time",
+      "time_format": "YYYY-MM-DD HH24:MI:SS"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_social_share_count",
+    "canonical_name": "社交分享次数",
+    "aliases": [
+      "社交分享次数",
+      "social_share_count",
+      "分享量",
+      "转发数"
+    ],
+    "aggregation": {
+      "function": "COUNT",
+      "field": "share_id",
+      "alias": "social_share_count"
+    },
+    "table_mapping": {
+      "table_name": "dws_social_activity",
+      "time_field": "share_time",
+      "time_format": "YYYY-MM-DD HH24:MI:SS"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_average_basket_size",
+    "canonical_name": "平均购物篮大小",
+    "aliases": [
+      "平均购物篮大小",
+      "average_basket_size",
+      "平均购物车商品数",
+      "客单件数"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "item_count",
+      "alias": "avg_basket_size"
+    },
+    "table_mapping": {
+      "table_name": "dws_orders",
+      "time_field": "order_date",
+      "time_format": "YYYY-MM-DD"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_user_engagement_score",
+    "canonical_name": "用户参与度得分",
+    "aliases": [
+      "用户参与度得分",
+      "user_engagement_score",
+      "用户活跃度评分",
+      "互动得分"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "engagement_score",
+      "alias": "user_engagement_score"
+    },
+    "table_mapping": {
+      "table_name": "dws_user_activity",
+      "time_field": "calculated_at",
+      "time_format": "YYYY-MM-DD"
+    },
+    "filters": [],
+    "type": "metric"
+  },
+  {
+    "id": "metric_content_virality_score",
+    "canonical_name": "内容病毒式传播得分",
+    "aliases": [
+      "内容病毒式传播得分",
+      "content_virality_score",
+      "内容传播指数",
+      "病毒传播系数"
+    ],
+    "aggregation": {
+      "function": "AVG",
+      "field": "virality_score",
+      "alias": "content_virality_score"
+    },
+    "table_mapping": {
+      "table_name": "dws_content_performance",
+      "time_field": "published_at",
+      "time_format": "YYYY-MM-DD"
     },
     "filters": [],
     "type": "metric"

@@ -69,13 +69,34 @@ MOCK_DATA_CONFIG = {
 }
 
 # 期望的实体类型（根据问题类型动态调整）
-EXPECTED_ENTITY_TYPES = ['metric', 'dimension', 'mapping']
+EXPECTED_ENTITY_TYPES = ['metric', 'dimension', 'mapping', 'concept']
 
 # 问题类型与期望实体类型的映射
 QUESTION_TYPE_ENTITY_MAPPING = {
     'metric_query': ['metric'],  # 纯指标查询
     'dimension_query': ['dimension'],  # 维度分析查询
     'mapping_query': ['mapping'],  # 映射关系查询
+    'concept_query': ['concept'],  # 概念查询
     'mixed_query': ['metric', 'dimension'],  # 混合查询
-    'comprehensive_query': ['metric', 'dimension', 'mapping']  # 综合查询
+    'comprehensive_query': ['metric', 'dimension', 'mapping', 'concept']  # 综合查询
+}
+
+# 业务概念关键词映射
+BUSINESS_CONCEPT_KEYWORDS = {
+    'user_behavior': ['用户行为', '行为分析', '用户习惯', '使用习惯', '行为模式'],
+    'ecommerce': ['电商', '交易', '购买', '订单', '商品', '销售', '营收'],
+    'marketing': ['营销', '推广', '获客', '转化', '广告', '活动', 'campaign'],
+    'retention': ['留存', '流失', '粘性', '忠诚度', '回访', '复购'],
+    'performance': ['性能', '效率', '质量', '效果', '表现', '指标'],
+    'growth': ['增长', '发展', '扩张', '提升', '改善', '优化'],
+    'analysis': ['分析', '统计', '对比', '趋势', '分布', '排名'],
+    'technical': ['技术', '系统', '平台', '应用', '崩溃', '响应', '稳定']
+}
+
+# 概念覆盖率权重配置
+CONCEPT_COVERAGE_WEIGHTS = {
+    'metric': 0.4,      # 指标权重
+    'dimension': 0.3,   # 维度权重
+    'mapping': 0.2,     # 映射权重
+    'concept': 0.1      # 概念权重
 }

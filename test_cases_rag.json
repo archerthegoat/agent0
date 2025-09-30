@@ -697,5 +697,638 @@
       "expected_input": "2025-01,2025-12",
       "description": "模拟用户澄清时间范围"
     }
+  },
+  {
+    "id": "test_021",
+    "question": "查询2025年8月的GMV和订单数",
+    "expected_sql": "SELECT SUM(order_amount) AS gmv, COUNT(order_id) AS orders FROM dws_orders WHERE order_date >= '2025-08-01' AND order_date < '2025-09-01'",
+    "expected_result": [
+      {
+        "gmv": 50000,
+        "orders": 1000
+      }
+    ],
+    "expected_metrics": [
+      "gmv",
+      "orders"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [],
+    "category": "ecommerce_metrics",
+    "description": "电商核心指标查询",
+    "expected_rag_entities": [
+      "gmv",
+      "orders",
+      "order_date"
+    ],
+    "expected_rag_concepts": [
+      "GMV",
+      "订单数",
+      "电商交易"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_022",
+    "question": "按渠道统计2025年9月的ARPU",
+    "expected_sql": "SELECT AVG(user_revenue) AS arpu, channel FROM dws_user_activity WHERE month = '2025-09' GROUP BY channel ORDER BY channel",
+    "expected_result": [
+      {
+        "arpu": 25.5,
+        "channel": "organic"
+      },
+      {
+        "arpu": 30.2,
+        "channel": "paid"
+      }
+    ],
+    "expected_metrics": [
+      "arpu"
+    ],
+    "expected_time_filter": "2025-09",
+    "expected_group_by": [
+      "channel"
+    ],
+    "category": "user_value_analysis",
+    "description": "用户价值分析",
+    "expected_rag_entities": [
+      "arpu",
+      "channel",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "ARPU",
+      "渠道分析",
+      "用户价值"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_023",
+    "question": "2025年第三季度的用户留存率趋势",
+    "expected_sql": "SELECT AVG(retention_rate) AS retention_rate, month FROM dws_user_activity WHERE month BETWEEN '2025-07' AND '2025-09' GROUP BY month ORDER BY month",
+    "expected_result": [
+      {
+        "retention_rate": 0.75,
+        "month": "2025-07"
+      },
+      {
+        "retention_rate": 0.78,
+        "month": "2025-08"
+      },
+      {
+        "retention_rate": 0.80,
+        "month": "2025-09"
+      }
+    ],
+    "expected_metrics": [
+      "retention_rate"
+    ],
+    "expected_time_filter": "2025-07,2025-09",
+    "expected_group_by": [
+      "month"
+    ],
+    "category": "retention_analysis",
+    "description": "用户留存分析",
+    "expected_rag_entities": [
+      "retention_rate",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "用户留存率",
+      "季度趋势",
+      "用户粘性"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_024",
+    "question": "统计2025年8月的购物车放弃率",
+    "expected_sql": "SELECT AVG(cart_abandoned_flag) AS cart_abandonment_rate FROM dws_cart_activity WHERE created_at >= '2025-08-01' AND created_at < '2025-09-01'",
+    "expected_result": [
+      {
+        "cart_abandonment_rate": 0.65
+      }
+    ],
+    "expected_metrics": [
+      "cart_abandonment_rate"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [],
+    "category": "ecommerce_behavior",
+    "description": "电商行为分析",
+    "expected_rag_entities": [
+      "cart_abandonment_rate",
+      "created_at"
+    ],
+    "expected_rag_concepts": [
+      "购物车放弃率",
+      "电商转化",
+      "用户行为"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_025",
+    "question": "按设备类型分析2025年9月的会话时长",
+    "expected_sql": "SELECT AVG(session_duration_minutes) AS avg_session_duration, device_type FROM dws_user_activity WHERE month = '2025-09' GROUP BY device_type ORDER BY device_type",
+    "expected_result": [
+      {
+        "avg_session_duration": 8.5,
+        "device_type": "mobile"
+      },
+      {
+        "avg_session_duration": 12.3,
+        "device_type": "desktop"
+      }
+    ],
+    "expected_metrics": [
+      "avg_session_duration"
+    ],
+    "expected_time_filter": "2025-09",
+    "expected_group_by": [
+      "device_type"
+    ],
+    "category": "user_behavior",
+    "description": "用户行为分析",
+    "expected_rag_entities": [
+      "avg_session_duration",
+      "device_type",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "会话时长",
+      "设备分析",
+      "用户行为"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_026",
+    "question": "查询2025年8月的客户满意度评分",
+    "expected_sql": "SELECT AVG(satisfaction_score) AS customer_satisfaction FROM dws_user_activity WHERE month = '2025-08'",
+    "expected_result": [
+      {
+        "customer_satisfaction": 4.2
+      }
+    ],
+    "expected_metrics": [
+      "customer_satisfaction"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [],
+    "category": "customer_service",
+    "description": "客户服务质量分析",
+    "expected_rag_entities": [
+      "customer_satisfaction",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "客户满意度",
+      "服务质量",
+      "用户体验"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_027",
+    "question": "2025年第二季度的复购率统计",
+    "expected_sql": "SELECT AVG(is_repeat_purchase) AS repeat_purchase_rate FROM dws_orders WHERE order_date >= '2025-04-01' AND order_date < '2025-07-01'",
+    "expected_result": [
+      {
+        "repeat_purchase_rate": 0.35
+      }
+    ],
+    "expected_metrics": [
+      "repeat_purchase_rate"
+    ],
+    "expected_time_filter": "2025-04,2025-06",
+    "expected_group_by": [],
+    "category": "customer_loyalty",
+    "description": "客户忠诚度分析",
+    "expected_rag_entities": [
+      "repeat_purchase_rate",
+      "order_date"
+    ],
+    "expected_rag_concepts": [
+      "复购率",
+      "客户忠诚度",
+      "季度分析"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_028",
+    "question": "按地区统计2025年8月的邮件打开率",
+    "expected_sql": "SELECT AVG(is_opened) AS email_open_rate, region FROM dws_email_campaign WHERE sent_at >= '2025-08-01' AND sent_at < '2025-09-01' GROUP BY region ORDER BY region",
+    "expected_result": [
+      {
+        "email_open_rate": 0.25,
+        "region": "北京"
+      },
+      {
+        "email_open_rate": 0.28,
+        "region": "上海"
+      }
+    ],
+    "expected_metrics": [
+      "email_open_rate"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "region"
+    ],
+    "category": "marketing_effectiveness",
+    "description": "营销效果分析",
+    "expected_rag_entities": [
+      "email_open_rate",
+      "region",
+      "sent_at"
+    ],
+    "expected_rag_concepts": [
+      "邮件打开率",
+      "营销效果",
+      "地区分析"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_029",
+    "question": "查询2025年9月的APP崩溃率",
+    "expected_sql": "SELECT AVG(is_crashed) AS app_crash_rate FROM dws_app_performance WHERE event_time >= '2025-09-01' AND event_time < '2025-10-01'",
+    "expected_result": [
+      {
+        "app_crash_rate": 0.02
+      }
+    ],
+    "expected_metrics": [
+      "app_crash_rate"
+    ],
+    "expected_time_filter": "2025-09",
+    "expected_group_by": [],
+    "category": "technical_performance",
+    "description": "技术性能监控",
+    "expected_rag_entities": [
+      "app_crash_rate",
+      "event_time"
+    ],
+    "expected_rag_concepts": [
+      "APP崩溃率",
+      "技术性能",
+      "稳定性"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_030",
+    "question": "2025年8月各渠道的客户获取成本对比",
+    "expected_sql": "SELECT AVG(acquisition_cost) AS cac, channel FROM dws_marketing_cost WHERE date >= '2025-08-01' AND date < '2025-09-01' GROUP BY channel ORDER BY channel",
+    "expected_result": [
+      {
+        "cac": 15.5,
+        "channel": "organic"
+      },
+      {
+        "cac": 25.8,
+        "channel": "paid"
+      }
+    ],
+    "expected_metrics": [
+      "cac"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel"
+    ],
+    "category": "marketing_cost",
+    "description": "营销成本分析",
+    "expected_rag_entities": [
+      "cac",
+      "channel",
+      "date"
+    ],
+    "expected_rag_concepts": [
+      "客户获取成本",
+      "营销成本",
+      "渠道对比"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_031",
+    "question": "分析2025年8月各地区的用户留存率差异",
+    "expected_sql": "SELECT AVG(retention_flag) AS retention_rate, region FROM dws_user_activity WHERE month = '2025-08' GROUP BY region ORDER BY retention_rate DESC",
+    "expected_result": [
+      {
+        "retention_rate": 0.85,
+        "region": "north"
+      },
+      {
+        "retention_rate": 0.75,
+        "region": "south"
+      }
+    ],
+    "expected_metrics": [
+      "retention_rate"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "region"
+    ],
+    "category": "retention_analysis",
+    "description": "地区留存率分析",
+    "expected_rag_entities": [
+      "retention_rate",
+      "region",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "用户留存率",
+      "地区差异",
+      "留存分析"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_032",
+    "question": "统计2025年第三季度的转化率趋势",
+    "expected_sql": "SELECT AVG(conversion_flag) AS conversion_rate, month FROM dws_user_activity WHERE month BETWEEN '2025-07' AND '2025-09' GROUP BY month ORDER BY month",
+    "expected_result": [
+      {
+        "conversion_rate": 0.12,
+        "month": "2025-07"
+      },
+      {
+        "conversion_rate": 0.15,
+        "month": "2025-08"
+      },
+      {
+        "conversion_rate": 0.18,
+        "month": "2025-09"
+      }
+    ],
+    "expected_metrics": [
+      "conversion_rate"
+    ],
+    "expected_time_filter": "2025-07,2025-09",
+    "expected_group_by": [
+      "month"
+    ],
+    "category": "conversion_analysis",
+    "description": "转化率趋势分析",
+    "expected_rag_entities": [
+      "conversion_rate",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "转化率",
+      "季度趋势",
+      "转化分析"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_033",
+    "question": "查询2025年8月的平均订单价值",
+    "expected_sql": "SELECT AVG(order_amount) AS aov FROM dws_orders WHERE order_date >= '2025-08-01' AND order_date < '2025-09-01'",
+    "expected_result": [
+      {
+        "aov": 150.00
+      }
+    ],
+    "expected_metrics": [
+      "aov"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [],
+    "category": "ecommerce_value",
+    "description": "平均订单价值分析",
+    "expected_rag_entities": [
+      "aov",
+      "order_date"
+    ],
+    "expected_rag_concepts": [
+      "平均订单价值",
+      "AOV",
+      "电商价值"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_034",
+    "question": "按渠道分析2025年9月的跳出率",
+    "expected_sql": "SELECT AVG(bounce_flag) AS bounce_rate, channel FROM dws_user_activity WHERE month = '2025-09' GROUP BY channel ORDER BY channel",
+    "expected_result": [
+      {
+        "bounce_rate": 0.35,
+        "channel": "mobile"
+      },
+      {
+        "bounce_rate": 0.28,
+        "channel": "web"
+      }
+    ],
+    "expected_metrics": [
+      "bounce_rate"
+    ],
+    "expected_time_filter": "2025-09",
+    "expected_group_by": [
+      "channel"
+    ],
+    "category": "user_behavior",
+    "description": "渠道跳出率分析",
+    "expected_rag_entities": [
+      "bounce_rate",
+      "channel",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "跳出率",
+      "渠道分析",
+      "用户行为"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_035",
+    "question": "2025年8月的收入统计",
+    "expected_sql": "SELECT SUM(revenue_amount) AS revenue FROM dws_user_activity WHERE month = '2025-08'",
+    "expected_result": [
+      {
+        "revenue": 5000.00
+      }
+    ],
+    "expected_metrics": [
+      "revenue"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [],
+    "category": "revenue_analysis",
+    "description": "收入统计",
+    "expected_rag_entities": [
+      "revenue",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "收入",
+      "收入统计",
+      "财务指标"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_036",
+    "question": "统计2025年第二季度的新用户数",
+    "expected_sql": "SELECT COUNT(DISTINCT user_id) AS new_users FROM dws_user_activity WHERE month BETWEEN '2025-04' AND '2025-06' AND is_new_user = 1",
+    "expected_result": [
+      {
+        "new_users": 150
+      }
+    ],
+    "expected_metrics": [
+      "new_users"
+    ],
+    "expected_time_filter": "2025-04,2025-06",
+    "expected_group_by": [],
+    "category": "user_growth",
+    "description": "新用户增长分析",
+    "expected_rag_entities": [
+      "new_users",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "新用户数",
+      "用户增长",
+      "季度分析"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_037",
+    "question": "按平台统计2025年8月的流失用户数",
+    "expected_sql": "SELECT COUNT(DISTINCT user_id) AS churn_users, platform FROM dws_user_activity WHERE month = '2025-08' AND is_churn = 1 GROUP BY platform ORDER BY platform",
+    "expected_result": [
+      {
+        "churn_users": 5,
+        "platform": "android"
+      },
+      {
+        "churn_users": 3,
+        "platform": "ios"
+      },
+      {
+        "churn_users": 2,
+        "platform": "web"
+      }
+    ],
+    "expected_metrics": [
+      "churn_users"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "platform"
+    ],
+    "category": "user_retention",
+    "description": "平台流失用户分析",
+    "expected_rag_entities": [
+      "churn_users",
+      "platform",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "流失用户数",
+      "平台分析",
+      "用户流失"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_038",
+    "question": "查询2025年8月的ROI表现",
+    "expected_sql": "SELECT AVG(roi_ratio) AS roi FROM dws_user_activity WHERE month = '2025-08'",
+    "expected_result": [
+      {
+        "roi": 2.5
+      }
+    ],
+    "expected_metrics": [
+      "roi"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [],
+    "category": "marketing_roi",
+    "description": "投资回报率分析",
+    "expected_rag_entities": [
+      "roi",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "ROI",
+      "投资回报率",
+      "营销效果"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_039",
+    "question": "按设备类型分析2025年9月的页面浏览数/会话",
+    "expected_sql": "SELECT AVG(pages_per_session) AS page_views_per_session, device_type FROM dws_user_activity WHERE month = '2025-09' GROUP BY device_type ORDER BY device_type",
+    "expected_result": [
+      {
+        "page_views_per_session": 4.2,
+        "device_type": "desktop"
+      },
+      {
+        "page_views_per_session": 3.1,
+        "device_type": "mobile"
+      }
+    ],
+    "expected_metrics": [
+      "page_views_per_session"
+    ],
+    "expected_time_filter": "2025-09",
+    "expected_group_by": [
+      "device_type"
+    ],
+    "category": "user_engagement",
+    "description": "设备类型页面浏览分析",
+    "expected_rag_entities": [
+      "page_views_per_session",
+      "device_type",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "页面浏览数/会话",
+      "设备分析",
+      "用户参与度"
+    ],
+    "time_clarification": null
+  },
+  {
+    "id": "test_040",
+    "question": "统计2025年第三季度的回访率",
+    "expected_sql": "SELECT AVG(is_return_visitor) AS return_visitor_rate FROM dws_user_activity WHERE month BETWEEN '2025-07' AND '2025-09'",
+    "expected_result": [
+      {
+        "return_visitor_rate": 0.45
+      }
+    ],
+    "expected_metrics": [
+      "return_visitor_rate"
+    ],
+    "expected_time_filter": "2025-07,2025-09",
+    "expected_group_by": [],
+    "category": "user_loyalty",
+    "description": "用户回访率分析",
+    "expected_rag_entities": [
+      "return_visitor_rate",
+      "month"
+    ],
+    "expected_rag_concepts": [
+      "回访率",
+      "用户忠诚度",
+      "季度分析"
+    ],
+    "time_clarification": null
   }
 ]

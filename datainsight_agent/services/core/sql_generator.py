@@ -38,6 +38,16 @@ class SQLGenerator:
         if not default_table:
             s = load_settings()
             default_table = s.dw_table or "dws_user_activity"
+        
+        # 检查所有聚合是否使用相同的表，如果不一致则使用默认表
+        for aggregation in ir.aggregations:
+            if aggregation.table_mapping:
+                agg_table = aggregation.table_mapping.get('table_name')
+                if agg_table and agg_table != default_table:
+                    # 如果聚合使用不同表，回退到默认表
+                    default_table = s.dw_table or "dws_user_activity"
+                    time_field = 'month'
+                    break
 
         # 处理聚合函数
         for aggregation in ir.aggregations:
