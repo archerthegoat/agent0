@@ -40,6 +40,8 @@ python -m datainsight_agent.cli check
 ```bash
 # LlamaIndex engine
 python -m datainsight_agent.cli run --question "What is monthly active users?"
+## Workflow (LlamaIndex)
+python -m datainsight_agent.cli run --question "What is monthly active users?" --validate --execute
 ```
 
 ### LlamaIndex Engine
@@ -118,8 +120,8 @@ datainsight_agent/
 
 示例：以解耦接口方式调用查询重写与时间解析
 ```python
-from datainsight_agent.components.query_rewriter import QueryRewriter
-from datainsight_agent.components.time_parser import TimeParser
+from datainsight_agent.services.core.query_rewriter import OptimizedQ2QRewriter as QueryRewriter
+from datainsight_agent.services.parsers.time_filter_parser import TimeFilterParser as TimeParser
 
 rewriter = QueryRewriter()
 res = rewriter.rewrite("查询2025年8月的MAU")
@@ -137,9 +139,10 @@ print(tf)
 
 #### 组件直连示例：IRBuilder + SQL 生成与执行
 ```python
-from datainsight_agent.components.query_rewriter import QueryRewriter
+from datainsight_agent.services.core.query_rewriter import OptimizedQ2QRewriter as QueryRewriter
 from datainsight_agent.components.ir_builder import IRBuilder
-from datainsight_agent.components.sql_generator import SQLGeneratorComponent, SQLExecutorComponent
+from datainsight_agent.services.core.sql_generator import SQLGenerator as SQLGeneratorComponent
+from datainsight_agent.services.core.sql_executor import SQLExecutor as SQLExecutorComponent
 
 question = "查询2025年8月的MAU"
 

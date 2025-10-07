@@ -1,8 +1,7 @@
 """
-LEGACY: Metric parsing logic.
+LEGACY: Original metric parser used by the pipeline.
 
-Bridged by the component `components.metric_resolver.MetricResolver`.
-Prefer the component interface in new code.
+Direct implementation of metric parsing logic.
 """
 
 from typing import Dict, Any, List, Optional

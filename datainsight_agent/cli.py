@@ -16,6 +16,8 @@ from datainsight_agent.cli_helpers import (
 	ask_time, ask_metric, compute_default_window, test_logging, env_temporary
 )
 from datainsight_agent.common.logging import get_logger, configure_logging
+import sys
+import asyncio
 from datainsight_agent.config.settings import load_settings
 from datainsight_agent.etl.ragflow_etl import run_ragflow_etl
 from datainsight_agent.models.kb import KBEntity
@@ -35,6 +37,13 @@ def get_app_help() -> str:
 	return f"{s.project_info.get('name', 'DataInsight Agent')} CLI"
 
 app = typer.Typer(help=get_app_help())
+
+# Windows: ensure selector policy compatible with many libs
+if sys.platform.startswith("win"):
+	try:
+		asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+	except Exception:
+		pass
 
 @app.command()
 def check() -> None:
@@ -319,11 +328,15 @@ def run(
 	# Use LlamaIndex engine
 	eng = (engine or getattr(s, "orchestrator_engine", "llamaindex") or "llamaindex").lower()
 	try:
-		from datainsight_agent.orchestrator.li import build_pipeline as _build_li
-		agent = _build_li()
-		append_log_line("engine_selected", engine=eng)
-	except Exception as _e:
-		handle_command_error("run", _e, question=question)
+		# 优先使用新的 Workflow；失败则回退到旧 pipeline
+		from datainsight_agent.orchestrator.li import build_workflow as _build_wf
+		agent = _build_wf()
+		append_log_line("engine_selected", engine=f"{eng}-workflow")
+	except Exception:
+		# 回退到旧 pipeline（已删除，直接使用 workflow）
+		from datainsight_agent.orchestrator.li import build_workflow as _build_wf
+		agent = _build_wf()
+		append_log_line("engine_selected", engine=f"{eng}-workflow")
 	state = {"question": question}
 
 	# Stream pipeline results
@@ -360,9 +373,6 @@ def run(
 	if final.get("timings"):
 		print_timings(final["timings"])
 
-	response = final.get("response")
-	if response:
-		print(response)
 
 
 @app.command()

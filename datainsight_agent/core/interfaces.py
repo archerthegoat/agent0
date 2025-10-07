@@ -41,14 +41,6 @@ class TimeParserInterface(ServiceInterface, ABC):
         """Parse time expression from question and return normalized filter."""
 
 
-class VectorRetrieverInterface(ServiceInterface, ABC):
-    """Interface for vector retrieval component."""
-
-    @abstractmethod
-    def retrieve(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        """Retrieve top-k related items from KB/vector index."""
-
-
 class SQLGeneratorInterface(ServiceInterface, ABC):
     """Interface for SQL generation component."""
 
@@ -63,13 +55,5 @@ class DatabaseExecutorInterface(ServiceInterface, ABC):
     @abstractmethod
     def execute(self, sql: str) -> List[Dict[str, Any]]:
         """Execute SQL and return rows as list of dicts."""
-
-
-class MetricResolverInterface(ServiceInterface, ABC):
-    """Interface for resolving metrics from questions."""
-
-    @abstractmethod
-    def resolve(self, question: str) -> List[str]:
-        """Resolve metric aliases to canonical metric keys."""
 
 

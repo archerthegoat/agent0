@@ -1,3 +1,3 @@
-from .pipeline import build_pipeline  # noqa: F401
+from .workflow import build_workflow  # noqa: F401
 
 

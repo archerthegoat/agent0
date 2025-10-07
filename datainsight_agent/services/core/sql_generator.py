@@ -26,6 +26,8 @@ class SQLGenerator:
         select_parts: List[str] = []
         group_by_parts: List[str] = []
         select_fields_tracked: set = set()
+        # Ensure settings available wherever needed
+        s = load_settings()
         
         # 从第一个聚合中获取表映射信息
         table_mapping = {}
@@ -36,7 +38,6 @@ class SQLGenerator:
             default_table = table_mapping.get('table_name', default_table)
         
         if not default_table:
-            s = load_settings()
             default_table = s.dw_table or "dws_user_activity"
         
         # 检查所有聚合是否使用相同的表，如果不一致则使用默认表
@@ -129,7 +130,7 @@ class SQLGenerator:
                 alias_part = select_part.split(' AS ')[-1]
                 case_aliases[f"CASE_EXPR_{i}"] = alias_part.strip()
         
-        for order_field in ir.order_by:
+        for order_field in (ir.order_by or []):
             mapped_order_field = self._map_field(order_field, time_field)
             
             # 检查是否为复杂CASE表达式
@@ -212,6 +213,7 @@ class SQLGenerator:
             'time_field': 'month',  # 时间字段映射（使用month而不是date）
             'page_views': 'page_view_id',  # PV字段映射
             'pageviews': 'page_view_id',  # PV字段映射
+            'referral_source': 'channel',  # 推荐来源映射到事实表字段
         }
         
         # 基础时间字段映射

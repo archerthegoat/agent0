@@ -112,3 +112,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Fixed
 - `db-show-indexes` 兼容 SQLAlchemy Row 的 `_mapping` 输出，修复在不同方言/驱动下的打印异常。
+
+## [0.6.0] - 2025-10-07
+### Added
+- LlamaIndex Workflow：新增 `datainsight_agent/orchestrator/li/workflow.py`（q2q→retrieve→plan→build_ir→execute）。
+- LlamaIndex 工具：`datainsight_agent/tools/llamaindex_tools.py`（浅RAG指标召回/IR&SQL/校验等）。
+
+### Changed
+- CLI `run`：优先使用 Workflow，失败回退到旧 pipeline。
+- README：更新为使用 `run`（Workflow），移除 `run-li-agent` 示例。
+
+### Removed
+- CLI：移除 `run-li-agent` 子命令（统一到 `run`）。

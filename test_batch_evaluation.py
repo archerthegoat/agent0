@@ -17,7 +17,7 @@ from datainsight_agent.services.core.query_rewriter import OptimizedQ2QRewriter 
 from datainsight_agent.components.ir_builder import IRBuilder
 from datainsight_agent.services.core.sql_generator import SQLGenerator as SQLGeneratorComponent
 from datainsight_agent.services.core.sql_executor import SQLExecutor as SQLExecutorComponent
-from datainsight_agent.components.pipeline import SimplePipeline
+from datainsight_agent.orchestrator.li.workflow import LIWorkflow
 from datainsight_agent.services.db_bootstrap import init_mysql_min
 from test_evaluation_config import (
     CORE_METRICS, METRIC_KEYWORDS, TIME_KEYWORDS, QUERY_KEYWORDS,
@@ -108,7 +108,7 @@ class BatchTestEvaluator:
         self.ir_builder = IRBuilder()
         self.sql_generator = SQLGeneratorComponent()
         self.sql_executor = SQLExecutorComponent(settings)
-        self.pipeline = SimplePipeline()
+        self.pipeline = LIWorkflow()
         
         # 初始化配置
         config_manager = ConfigManager()

@@ -5,7 +5,7 @@ API服务层
 """
 
 from typing import Dict, Any, Optional
-from datainsight_agent.orchestrator.li.pipeline import LIPipeline
+from datainsight_agent.orchestrator.li.workflow import LIWorkflow
 from datainsight_agent.services.core.query_rewriter import OptimizedQ2QRewriter as QueryRewriter
 from datainsight_agent.services.parsers.time_filter_parser import TimeFilterParser as TimeParser
 from datainsight_agent.services.core.sql_generator import SQLGenerator as SQLGeneratorComponent
@@ -22,7 +22,7 @@ class APIService:
     
     def __init__(self):
         self.settings = load_settings()
-        self.pipeline = LIPipeline()
+        self.pipeline = LIWorkflow()
         self.logger = get_logger("api_service")
     
     async def process_query(self, request: QueryRequest) -> QueryResponse:
@@ -45,9 +45,9 @@ class APIService:
             if request.time_filter_override:
                 state["time_filter_override"] = request.time_filter_override
             
-            # 执行原有 pipeline（仅保留原链路）
+            # 执行新的 workflow（仅保留原链路）
             result = {}
-            for values in self.pipeline.stream(state, stream_mode="values"):
+            for values in self.pipeline.stream(state):
                 if isinstance(values, dict):
                     result.update(values)
             
