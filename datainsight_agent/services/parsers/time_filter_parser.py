@@ -6,6 +6,7 @@
 
 import re
 from typing import Optional, List, Tuple
+from datetime import datetime
 from datainsight_agent.models.ir import SemanticFilter
 
 
@@ -231,11 +232,47 @@ class TimeFilterParser:
         except (ValueError, IndexError):
             return False
     
+    # ===== 动态时间工具方法（供外部复用，避免重复造轮子） =====
+    @staticmethod
+    def get_current_month() -> str:
+        """获取当前月份，格式：YYYY-MM"""
+        now = datetime.now()
+        return now.strftime("%Y-%m")
+
+    @staticmethod
+    def get_last_month() -> str:
+        """获取上个月份，格式：YYYY-MM"""
+        now = datetime.now()
+        if now.month == 1:
+            year = now.year - 1
+            month = 12
+        else:
+            year = now.year
+            month = now.month - 1
+        return f"{year}-{month:02d}"
+
+    @staticmethod
+    def get_year_range(year: int) -> str:
+        """获取某年的范围，格式：YYYY-01,YYYY-12"""
+        return f"{int(year)}-01,{int(year)}-12"
+
+    @staticmethod
+    def get_relative_time_mapping() -> dict:
+        """获取相对时间的动态映射"""
+        current_month = TimeFilterParser.get_current_month()
+        last_month = TimeFilterParser.get_last_month()
+        y = datetime.now().year
+        return {
+            "本月": current_month,
+            "上月": last_month,
+            "今年": f"{y}-01,{y}-12",
+            "去年": f"{y-1}-01,{y-1}-12",
+        }
+
     def create_default_filter(self, time_column: str, year: str = None) -> SemanticFilter:
         """创建默认时间过滤器"""
         # 使用当前年份作为默认值
         if year is None:
-            from datetime import datetime
             year = str(datetime.now().year)
         
         return SemanticFilter(

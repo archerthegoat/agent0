@@ -285,13 +285,9 @@ class OptimizedQ2QRewriter:
         # 回退1：添加格式指导的JSON解析
         enhanced_prompt = f"""{prompt}
 
-Return JSON format:
-{{
-  "metric": ["mau", "dau"], 
-  "group_by": ["month"],
-  "time_filter": {{"type": "single", "value": "2025-08", "confidence": 0.9}},
-  "concepts": ["user", "activity"]
-}}"""
+Return JSON strictly matching the provided JSON Schema without hardcoded defaults.
+Ensure fields conform to the enumerations and required types.
+"""
         
         try:
             obj = client.tool_call(
@@ -440,7 +436,8 @@ Return JSON format:
         """标准化相对时间"""
         import datetime as dt
         
-        base_date = dt.date(2025, 9, 28)  # 模拟当前日期
+        # 使用真实当前日期，避免硬编码
+        base_date = dt.date.today()
         
         if '最近' in question and '个月' in question:
             import re
@@ -456,14 +453,18 @@ Return JSON format:
                 return f"{start_year}-{start_month:02d},{base_date.year}-{base_date.month:02d}"
         
         if '今年' in question:
-            return f"{base_date.year}-01,{base_date.year}-12"
+            return f"{dt.date.today().year}-01,{dt.date.today().year}-12"
         
         if '去年' in question:
-            return f"{base_date.year-1}-01,{base_date.year-1}-12"
+            y = dt.date.today().year - 1
+            return f"{y}-01,{y}-12"
         
         if '上月' in question:
-            prev_month = base_date.month - 1 if base_date.month > 1 else 12
-            prev_year = base_date.year if base_date.month > 1 else base_date.year - 1
+            today = dt.date.today()
+            if today.month == 1:
+                prev_year, prev_month = today.year - 1, 12
+            else:
+                prev_year, prev_month = today.year, today.month - 1
             return f"{prev_year}-{prev_month:02d}"
         
         return value

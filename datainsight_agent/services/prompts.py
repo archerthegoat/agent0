@@ -92,7 +92,11 @@ class Q2QSystemPrompts:
 	@staticmethod
 	def get_base_rules() -> str:
 		"""基础时间解析规则"""
-		return """Extract time information from Chinese queries following exact patterns:
+		# 动态时间：避免硬编码当前月份
+		from datainsight_agent.services.parsers.time_filter_parser import TimeFilterParser
+		current_month = TimeFilterParser.get_current_month()
+
+		return f"""Extract time information from Chinese queries following exact patterns:
 
 QUARTER (季度) - MUST output canonical format:
 - "2025年第3季度" → type="quarter", value="2025年第3季度"
@@ -119,22 +123,24 @@ CRITICAL: For quarters, preserve original Chinese format in value field!
 
 DEFAULT TIME INFERENCE - CRITICAL for queries without explicit time:
 - If no time expression found, infer default time based on query context:
-  * "按渠道统计MAU" → type="single", value="2025-08" (current month)
-  * "按地区统计DAU" → type="single", value="2025-08" (current month)  
-  * "设备分析" → type="single", value="2025-08" (current month)
-  * "平台对比" → type="single", value="2025-08" (current month)
-  * Any statistical query without time → type="single", value="2025-08"
+  * "按渠道统计MAU" → type="single", value="{current_month}" (current month)
+  * "按地区统计DAU" → type="single", value="{current_month}" (current month)  
+  * "设备分析" → type="single", value="{current_month}" (current month)
+  * "平台对比" → type="single", value="{current_month}" (current month)
+  * Any statistical query without time → type="single", value="{current_month}"
 
 IMPORTANT: Always provide a time_filter, never leave it as "none" for statistical queries!"""
 
 	@staticmethod
 	def get_default_time_inference() -> str:
 		"""默认时间推断规则"""
-		return """
+		from datainsight_agent.services.parsers.time_filter_parser import TimeFilterParser
+		current_month = TimeFilterParser.get_current_month()
+		return f"""
 
 DEFAULT TIME INFERENCE - Apply when no explicit time found:
 - Statistical queries need default time scope
-- Use current month "2025-08" as default
+- Use current month "{current_month}" as default
 - Never return time_filter as "none" for MAU/DAU/UV/PV queries"""
 
 	@staticmethod
@@ -209,13 +215,15 @@ CRITICAL: For quarter analysis queries like "第3季度UV趋势":
 	@staticmethod
 	def get_relative_time_mapping() -> str:
 		"""相对时间映射"""
-		return """
+		from datainsight_agent.services.parsers.time_filter_parser import TimeFilterParser
+		m = TimeFilterParser.get_relative_time_mapping()
+		return f"""
 RELATIVE TIME MAPPING:
 - 最近2个月 = "last_2_months" (format as range)
-- 今年 = "2025-01,2025-12"
-- 去年 = "2024-01,2024-12" 
-- 本月 = "2025-09"
-- 上月 = "2025-08"""
+- 今年 = "{m['今年']}"
+- 去年 = "{m['去年']}" 
+- 本月 = "{m['本月']}"
+- 上月 = "{m['上月']}""" 
 
 	@staticmethod
 	def get_trend_analysis_rules() -> str:

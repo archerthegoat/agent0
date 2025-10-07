@@ -124,3 +124,14 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Removed
 - CLI：移除 `run-li-agent` 子命令（统一到 `run`）。
+
+## [0.6.1] - 2025-10-07
+### Changed
+- Prompts：去除默认时间相关的硬编码（如 2025-08/2025-09/2025-01..2025-12），改为通过 `TimeFilterParser` 动态获取当前时间；`Q2QSystemPrompts.get_base_rules/get_default_time_inference/get_relative_time_mapping` 全量改造为动态值。
+- 时间工具：在 `services/parsers/time_filter_parser.py` 内新增通用动态时间方法 `get_current_month`、`get_last_month`、`get_year_range`、`get_relative_time_mapping`，统一复用，避免新增重复组件。
+
+### Removed
+- Query Rewriter：删除回退分支中的硬编码兜底示例 JSON 与固定日期（如 `2025-08`、模拟 `base_date`），改为仅使用提供的 JSON Schema 进行约束，并用 `date.today()` 计算相对时间。
+
+### Kept
+- SQL 生成：保留 `services/core/sql_generator.py` 中季度映射规则（Q1/Q2/Q3/Q4），按用户要求不做改动。
