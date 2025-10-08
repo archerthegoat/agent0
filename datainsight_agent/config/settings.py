@@ -115,8 +115,8 @@ class Settings(BaseModel):
 	metadata_files: Dict[str, str] = Field(default={
 		"dimensions": "metadata/dimensions.json",
 		"metrics": "metadata/metrics.json",
-		"intent_mappings": "metadata/intent_mappings.json",
-		"questions": "metadata/questions.json"
+		"intent_mappings": None,  # 已删除intent_mappings.json
+		"questions": None,  # 已删除questions.json
 	})
 	
 	# Log files configuration

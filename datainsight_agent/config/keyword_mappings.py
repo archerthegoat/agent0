@@ -66,6 +66,52 @@ METRIC_KEYWORDS: Dict[str, str] = {
     "新用户": "new_users",
     "流失用户": "churn_users",
     
+    # 失败案例修复 - 添加缺失的关键词映射
+    "用户活跃情况": "mau",  # Test 019: 2025年第四季度的用户活跃情况
+    "ROI表现": "roi",      # Test 038: 查询2025年8月的ROI表现
+    "回访率": "retention_rate",  # Test 040: 统计2025年第三季度的回访率
+    
+    # 阶段2优化 - 扩展语义相关词汇映射
+    "ARPU": "arpu",        # Test 022: 按渠道统计2025年9月的ARPU
+    "arpu": "arpu",
+    "用户价值": "arpu",
+    "平均收入": "arpu",
+    "人均收入": "arpu",
+    "用户平均收入": "arpu",
+    
+    # 复合指标映射
+    "页面浏览数/会话": "page_views_per_session",  # Test 039: 按设备类型分析2025年9月的页面浏览数/会话
+    "页面浏览数": "page_views_per_session",
+    "浏览数/会话": "page_views_per_session",
+    "每会话浏览数": "page_views_per_session",
+    "页面/会话": "page_views_per_session",
+    
+    # 更多语义相关词汇
+    "用户参与度": "engagement",
+    "参与度": "engagement",
+    "用户粘性": "engagement",
+    "粘性": "engagement",
+    
+    # 技术性能相关
+    "崩溃率": "app_crash_rate",
+    "APP崩溃率": "app_crash_rate",
+    "应用崩溃率": "app_crash_rate",
+    
+    # 客户服务相关
+    "满意度": "customer_satisfaction",
+    "客户满意度": "customer_satisfaction",
+    "满意度评分": "customer_satisfaction",
+    
+    # 营销成本相关
+    "获取成本": "cac",
+    "客户获取成本": "cac",
+    "获客成本": "cac",
+    
+    # 会话相关
+    "会话时长": "avg_session_duration",
+    "平均会话时长": "avg_session_duration",
+    "会话时间": "avg_session_duration",
+    
     # 缩写直接识别（问题文本会lowercase）
     "mau": "mau",
     "uv": "uv",

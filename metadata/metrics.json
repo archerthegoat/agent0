@@ -420,7 +420,12 @@
       "alias": "cac"
     },
     "filters": [],
-    "type": "metric"
+    "type": "metric",
+    "table_mapping": {
+      "table_name": "dws_marketing_cost",
+      "time_field": "date",
+      "time_format": "YYYY-MM-DD"
+    }
   },
   {
     "id": "metric_roi",

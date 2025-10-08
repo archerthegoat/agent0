@@ -100,30 +100,7 @@ class MetricRegistry:
                         self._name_to_metric[nm] = mdef
             except Exception:
                 continue
-        # 可选：合并同义词文件（metadata/metric_synonyms.json）
-        try:
-            syn_path = self._dir / "metric_synonyms.json"
-            if syn_path.exists():
-                with syn_path.open("r", encoding="utf-8-sig") as f:
-                    syn_data = json.load(f)
-                # 支持两种格式：
-                # 1) { "metric_mau": ["月活跃用户", ...], ... }
-                # 2) [ {"metric_id": "metric_mau", "aliases": ["..."]}, ... ]
-                if isinstance(syn_data, dict):
-                    for mid, extra_aliases in syn_data.items():
-                        if not isinstance(extra_aliases, list):
-                            continue
-                        self._merge_synonyms_by_id(mid, extra_aliases)
-                elif isinstance(syn_data, list):
-                    for obj in syn_data:
-                        if not isinstance(obj, dict):
-                            continue
-                        mid = str(obj.get("metric_id") or "").strip()
-                        extra_aliases = obj.get("aliases") or []
-                        if mid and isinstance(extra_aliases, list):
-                            self._merge_synonyms_by_id(mid, extra_aliases)
-        except Exception:
-            pass
+        # metric_synonyms.json已删除，跳过同义词合并
         self._loaded = True
 
     def resolve_from_signals(self, signals: List[str]) -> Optional[MetricDef]:

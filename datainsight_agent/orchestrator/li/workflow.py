@@ -26,73 +26,37 @@ class LIWorkflow:
         return st
 
     def retrieve(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """Use LlamaIndex native retriever wrapper + fusion; fallback to legacy service."""
+        """Use enhanced RAG system for retrieval."""
         from datainsight_agent.config.settings import load_settings
-        from datainsight_agent.services.retrieval import RetrievalService
-        from datainsight_agent.clients.vector_store import MilvusVectorStore, EmbeddingModel
-        from datainsight_agent.clients.graph_client import LocalGraphClient
-        from pathlib import Path
+        from datainsight_agent.services.core.enhanced_kb_vector_retriever import EnhancedKBVectorRetriever
         st = dict(state)
         try:
-            # Build legacy service (as data source) once
             s = load_settings()
-            vector_store = None
-            local_graph = None
-            if getattr(s, "milvus_enabled", False):
-                emb = EmbeddingModel()
-                dim = len(emb.embed(["__probe__"])[0])
-                vector_store = MilvusVectorStore(dim=dim, space=str(s.vector_space))
-            gpath = Path(s.local_graph_path)
-            if gpath.exists():
-                local_graph = LocalGraphClient(str(gpath))
-            legacy = RetrievalService(vector_store=vector_store, local_graph=local_graph)
-
-            # Wrap legacy as a LlamaIndex BaseRetriever
-            try:
-                from llama_index.core.retrievers import BaseRetriever
-                from llama_index.core.schema import TextNode, NodeWithScore
-
-                class _KBWrapperRetriever(BaseRetriever):  # type: ignore
-                    def __init__(self, svc: RetrievalService, top_k: int = 5) -> None:
-                        self._svc = svc
-                        self._top_k = top_k
-
-                    def _retrieve(self, query: str):  # type: ignore
-                        concepts = []
-                        # very light concept extraction from q2q if available in outer scope
-                        # this retriever is used immediately below; query carries user text
-                        ents = self._svc.hybrid_knowledge_retriever(concepts, top_k=self._top_k)
-                        nodes = []
-                        for e in ents:
-                            meta = {
-                                "id": getattr(e, "id", ""),
-                                "canonical_name": getattr(e, "canonical_name", ""),
-                                "type": getattr(e, "type", ""),
-                            }
-                            txt = f"{meta.get('canonical_name')} ({meta.get('type')})"
-                            node = TextNode(text=txt, metadata=meta)
-                            nodes.append(NodeWithScore(node=node, score=1.0))
-                        return nodes
-
-                # Compose fusion retriever (single sub-retriever for now)
-                from llama_index.core.retrievers import QueryFusionRetriever
-                top_k = max(3, int(getattr(s, "rag_top_k", 5)))
-                sub = _KBWrapperRetriever(legacy, top_k=top_k)
-                fused = QueryFusionRetriever(retrievers=[sub], similarity_top_k=top_k, num_queries=1)
-
-                qtxt = str(st.get("question") or "")
-                li_nodes = fused.retrieve(qtxt)
-                # Map LI nodes -> kb_entities (compat downstream)
-                out = []
-                for nws in li_nodes:
-                    m = getattr(getattr(nws, "node", None), "metadata", {}) or {}
-                    out.append(m)
-                st["kb_entities"] = out
-            except Exception:
-                # Fallback to legacy path directly
-                concepts = list((st.get("q2q") or {}).get("concepts") or [])
-                st["kb_entities"] = legacy.hybrid_knowledge_retriever(concepts, top_k=max(3, int(getattr(s, "rag_top_k", 5))))
-        except Exception:
+            
+            # Use enhanced RAG system
+            enhanced_retriever = EnhancedKBVectorRetriever("kb_vector_index")
+            qtxt = str(st.get("question") or "")
+            top_k = max(3, int(getattr(s, "rag_top_k", 5)))
+            
+            # Get enhanced retrieval result
+            enhanced_result = enhanced_retriever.search_with_enhanced_rag(qtxt, top_k)
+            fragments = enhanced_result.get('fragments', [])
+            
+            # Convert fragments to kb_entities format for compatibility
+            kb_entities = []
+            for fragment in fragments:
+                metadata = fragment.get('metadata', {})
+                kb_entity = {
+                    'id': fragment.get('entity_id', ''),
+                    'canonical_name': metadata.get('canonical_name', ''),
+                    'type': fragment.get('entity_type', ''),
+                    'score': fragment.get('score', 0.0)
+                }
+                kb_entities.append(kb_entity)
+            
+            st["kb_entities"] = kb_entities
+        except Exception as e:
+            print(f"[WARN] Enhanced RAG retrieval failed: {e}")
             st["kb_entities"] = []
         return st
 

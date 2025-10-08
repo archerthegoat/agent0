@@ -982,15 +982,15 @@
   {
     "id": "test_030",
     "question": "2025年8月各渠道的客户获取成本对比",
-    "expected_sql": "SELECT AVG(roi_ratio) AS cac, channel FROM dws_user_activity WHERE month = '2025-08' GROUP BY channel ORDER BY channel",
+    "expected_sql": "SELECT AVG(acquisition_cost) AS cac, channel FROM dws_marketing_cost WHERE date LIKE '2025-08%' GROUP BY channel ORDER BY channel",
     "expected_result": [
       {
-        "cac": 2.2,
-        "channel": "mobile"
+        "cac": 15.5,
+        "channel": "organic"
       },
       {
-        "cac": 2.5,
-        "channel": "web"
+        "cac": 25.8,
+        "channel": "paid"
       }
     ],
     "expected_metrics": [

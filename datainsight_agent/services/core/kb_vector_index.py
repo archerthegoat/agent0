@@ -206,7 +206,8 @@ class KBVectorIndexBuilder:
         items = []
         try:
             # 使用配置化的文件路径（兼容 settings 中含 "metadata/" 前缀的情况）
-            mapping_file = self._resolve_metadata_path("intent_mappings", "intent_mappings.json")
+            # intent_mappings.json已删除，使用默认映射
+            mapping_file = None
             if not mapping_file.exists():
                 return items
             
@@ -342,7 +343,7 @@ class KBVectorRetriever:
             # 过滤出指标和维度，并标准化alias（动态相似度阈值）
             topics_and_metrics = []
             # 动态相似度阈值：根据查询类型和长度调整
-            base_threshold = 0.45  # 提高基础阈值，提升精确度
+            base_threshold = 0.35  # 降低基础阈值，提高召回率
             query_length_factor = min(0.05, len(query) * 0.01)  # 长查询稍微降低阈值
             min_similarity_threshold = base_threshold - query_length_factor
             
@@ -460,8 +461,19 @@ class KBVectorRetriever:
                     if fragment not in topics_and_metrics and len(topics_and_metrics) < top_k:
                         topics_and_metrics.append(fragment)
             
+            # 3. 回退机制：如果向量搜索结果不足，使用关键词匹配
+            if len(topics_and_metrics) < 2:
+                print(f"[INFO] 向量搜索结果不足({len(topics_and_metrics)}个)，启用关键词回退机制")
+                keyword_results = self._keyword_fallback_search(query)
+                for result in keyword_results:
+                    if not any(f.get('entity_id') == result.get('entity_id') for f in topics_and_metrics):
+                        topics_and_metrics.append(result)
+                        if len(topics_and_metrics) >= top_k:
+                            break
+            
             # 最终按分数排序
             topics_and_metrics.sort(key=lambda x: x['score'], reverse=True)
+            print(f"[INFO] 最终检索到 {len(topics_and_metrics)} 个实体")
             return topics_and_metrics[:top_k]
         except Exception as e:
             # 避免编码问题，使用安全的错误处理
@@ -469,6 +481,103 @@ class KBVectorRetriever:
                 print(f"[ERROR] 第一阶段向量检索失败: {str(e)}")
             except UnicodeError:
                 print(f"[ERROR] 第一阶段向量检索失败: encoding error")
+            return []
+    
+    def _keyword_fallback_search(self, query: str) -> List[Dict[str, Any]]:
+        """关键词回退搜索：当向量搜索失败时使用"""
+        try:
+            from datainsight_agent.services.registry.metric_registry import MetricRegistry
+            
+            registry = MetricRegistry()
+            registry.load()
+            
+            # 提取查询中的关键词
+            keywords = self._extract_metric_keywords(query)
+            fallback_results = []
+            
+            for keyword in keywords:
+                # 尝试从指标注册表匹配
+                metric_def = registry.resolve_from_signals([keyword])
+                if metric_def:
+                    fallback_results.append({
+                        "entity_id": f"metric_{metric_def.metric_id}",
+                        "entity_type": "metric",
+                        "score": 0.6,  # 回退搜索给中等分数
+                        "metadata": {
+                            'canonical_name': metric_def.canonical_name,
+                            'aliases': metric_def.aliases,
+                            'aggregation': metric_def.aggregation,
+                            'metric_id': metric_def.metric_id,
+                            'standardized': True
+                        }
+                    })
+            
+            # 阶段2优化：如果指标匹配失败，尝试复合指标匹配
+            if not fallback_results:
+                # 复合指标匹配
+                compound_metrics = {
+                    'page_views_per_session': {
+                        'patterns': ['页面浏览数/会话', '浏览数/会话', '每会话浏览数', '页面/会话'],
+                        'aggregation': {'function': 'AVG', 'field': 'pages_per_session', 'alias': 'page_views_per_session'}
+                    },
+                    'avg_session_duration': {
+                        'patterns': ['会话时长', '平均会话时长', '会话时间'],
+                        'aggregation': {'function': 'AVG', 'field': 'session_duration_minutes', 'alias': 'avg_session_duration'}
+                    },
+                    'customer_satisfaction': {
+                        'patterns': ['满意度', '客户满意度', '满意度评分'],
+                        'aggregation': {'function': 'AVG', 'field': 'satisfaction_score', 'alias': 'customer_satisfaction'}
+                    },
+                    'app_crash_rate': {
+                        'patterns': ['崩溃率', 'APP崩溃率', '应用崩溃率'],
+                        'aggregation': {'function': 'AVG', 'field': 'bounce_flag', 'alias': 'app_crash_rate'}
+                    },
+                    'cac': {
+                        'patterns': ['获取成本', '客户获取成本', '获客成本'],
+                        'aggregation': {'function': 'AVG', 'field': 'roi_ratio', 'alias': 'cac'}
+                    }
+                }
+                
+                for metric_name, config in compound_metrics.items():
+                    for pattern in config['patterns']:
+                        if pattern in query:
+                            fallback_results.append({
+                                "entity_id": f"metric_{metric_name}",
+                                "entity_type": "metric",
+                                "score": 0.7,  # 复合指标给较高分数
+                                "metadata": {
+                                    'canonical_name': metric_name,
+                                    'aliases': [metric_name],
+                                    'aggregation': config['aggregation'],
+                                    'standardized': True
+                                }
+                            })
+                            break
+                    if fallback_results:
+                        break
+            
+            # 如果复合指标匹配也失败，尝试维度匹配
+            if not fallback_results:
+                dimension_keywords = ['渠道', '地区', '设备', '平台', 'channel', 'region', 'device', 'platform']
+                for keyword in dimension_keywords:
+                    if keyword in query:
+                        fallback_results.append({
+                            "entity_id": f"dimension_{keyword}",
+                            "entity_type": "dimension", 
+                            "score": 0.5,
+                            "metadata": {
+                                'canonical_name': keyword,
+                                'aliases': [keyword],
+                                'standardized': True
+                            }
+                        })
+                        break
+            
+            print(f"[INFO] 关键词回退搜索找到 {len(fallback_results)} 个结果")
+            return fallback_results
+            
+        except Exception as e:
+            print(f"[ERROR] 关键词回退搜索失败: {e}")
             return []
     
     def _exact_metric_match(self, query: str) -> List[Dict[str, Any]]:
@@ -510,7 +619,7 @@ class KBVectorRetriever:
             return []
     
     def _extract_metric_keywords(self, query: str) -> List[str]:
-        """从查询中提取指标关键词，使用METRIC_KEYWORDS映射"""
+        """从查询中提取指标关键词，使用METRIC_KEYWORDS映射（阶段2优化版）"""
         try:
             keywords = []
             query_lower = query.lower()
@@ -528,33 +637,70 @@ class KBVectorRetriever:
                     # 跳过有编码问题的关键词
                     continue
             
-            # 2. 英文缩写匹配
+            # 2. 英文缩写匹配（增强版）
             import re
             try:
+                # 匹配2-4个字母的缩写
                 abbreviations = re.findall(r'\b[A-Z]{2,4}\b', query)
                 keywords.extend(abbreviations)
-            except UnicodeError:
-                # 跳过有编码问题的正则匹配
+                
+                # 匹配小写缩写
+                lowercase_abbr = re.findall(r'\b[a-z]{2,4}\b', query_lower)
+                keywords.extend(lowercase_abbr)
+            except Exception:
                 pass
             
-            # 3. 英文全称匹配
-            english_metrics = ['monthly active users', 'daily active users', 'unique visitors', 'page views']
-            for metric in english_metrics:
-                try:
-                    if metric in query_lower:
-                        keywords.append(metric)
-                except UnicodeError:
-                    # 跳过有编码问题的匹配
-                    continue
+            # 3. 阶段2优化：上下文语义匹配
+            context_patterns = {
+                # ARPU相关上下文
+                'arpu': ['用户价值', '平均收入', '人均收入', '用户平均收入'],
+                # 页面浏览相关上下文
+                'page_views_per_session': ['页面浏览', '浏览数', '每会话', '页面/会话'],
+                # 会话时长相关上下文
+                'avg_session_duration': ['会话时长', '会话时间', '平均时长'],
+                # 满意度相关上下文
+                'customer_satisfaction': ['满意度', '评分', '客户满意'],
+                # 崩溃率相关上下文
+                'app_crash_rate': ['崩溃', '崩溃率', '应用崩溃'],
+                # 获取成本相关上下文
+                'cac': ['获取成本', '获客成本', '客户获取'],
+            }
             
-            # 安全去重，避免编码问题
-            try:
-                return list(set(keywords))  # 去重
-            except UnicodeError:
-                # 如果去重失败，返回原始列表
-                return keywords
-        except Exception:
-            # 如果整个方法失败，返回空列表
+            for metric, patterns in context_patterns.items():
+                for pattern in patterns:
+                    if pattern in query:
+                        keywords.append(pattern)
+                        keywords.append(metric)
+                        break
+            
+            # 4. 复合指标识别（阶段2新增）
+            compound_patterns = {
+                'page_views_per_session': [
+                    r'页面浏览数/会话',
+                    r'浏览数/会话', 
+                    r'每会话浏览数',
+                    r'页面/会话'
+                ],
+                'avg_session_duration': [
+                    r'会话时长',
+                    r'平均会话时长',
+                    r'会话时间'
+                ]
+            }
+            
+            for metric, patterns in compound_patterns.items():
+                for pattern in patterns:
+                    if re.search(pattern, query):
+                        keywords.append(metric)
+                        break
+            
+            # 5. 去重并返回
+            unique_keywords = list(set(keywords))
+            print(f"[DEBUG] 提取的关键词: {unique_keywords}")
+            return unique_keywords
+            
+        except Exception as e:
+            print(f"[ERROR] 关键词提取失败: {e}")
             return []
     
     def _standardize_metric_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
@@ -723,9 +869,14 @@ class KBVectorRetriever:
         """找到与指标相关的维度"""
         related_dimensions = []
         
-        # 从intent_mappings中找到常用的分组维度
-        intent_mappings = self._load_intent_mappings()
-        group_by_mappings = intent_mappings.get('group_by', [])
+        # intent_mappings.json已删除，使用默认分组维度
+        group_by_mappings = [
+            {"concept": "渠道", "field": "channel"},
+            {"concept": "平台", "field": "platform"},
+            {"concept": "地区", "field": "region"},
+            {"concept": "设备", "field": "device_type"},
+            {"concept": "用户等级", "field": "user_level"}
+        ]
         
         for mapping in group_by_mappings:
             column = mapping.get('column', '')
@@ -751,14 +902,16 @@ class KBVectorRetriever:
         return related_metrics
     
     def _load_intent_mappings(self) -> Dict[str, Any]:
-        """加载意图映射配置"""
-        try:
-            mappings_file = Path("metadata/intent_mappings.json")
-            if mappings_file.exists():
-                return json.loads(mappings_file.read_text(encoding="utf-8"))
-        except Exception as e:
-            print(f"[ERROR] 加载意图映射失败: {e}")
-        return {}
+        """加载意图映射配置（已删除intent_mappings.json，返回默认配置）"""
+        return {
+            "group_by": [
+                {"concept": "渠道", "field": "channel"},
+                {"concept": "平台", "field": "platform"},
+                {"concept": "地区", "field": "region"},
+                {"concept": "设备", "field": "device_type"},
+                {"concept": "用户等级", "field": "user_level"}
+            ]
+        }
     
     def _load_all_metrics(self) -> List[Dict[str, Any]]:
         """加载所有指标定义"""
@@ -873,6 +1026,7 @@ class KBVectorRetriever:
         final_sorted = metric_results + other_results
         
         return final_sorted[:top_k]
+    
 
 
 def build_kb_vector_index(metadata_dir: str | Path = "metadata", index_dir: str | Path = "kb_vector_index") -> int:

@@ -114,6 +114,13 @@ class MetricParser:
                 got = reg.resolve_from_signals([clarified_metric])
                 if got is not None:
                     return got
+            # 优先使用Q2Q阶段已经识别出的指标
+            q2q_metrics = state.get("q2q", {}).get("metric", [])
+            if q2q_metrics:
+                for metric in q2q_metrics:
+                    got = reg.resolve_from_signals([metric])
+                    if got is not None:
+                        return got
             # 回退：从原始问题中提取候选token/关键词后做精确匹配
             qtxt = str(state.get("question") or "").lower()
             if not qtxt:

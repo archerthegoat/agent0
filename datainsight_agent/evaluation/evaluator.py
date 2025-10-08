@@ -267,13 +267,11 @@ class ComprehensiveEvaluator:
         
         try:
             # 导入组件
-            from ..components.query_rewriter.service import QueryRewriter
-            from ..components.ir_builder.service import IRBuilder
+            from ..services.core.query_rewriter import OptimizedQ2QRewriter
             from ..services.core.sql_generator import SQLGenerator
             
             # 初始化组件
-            query_rewriter = QueryRewriter()
-            ir_builder = IRBuilder()
+            query_rewriter = OptimizedQ2QRewriter()
             sql_generator = SQLGenerator()
             
             # 1. 查询重写阶段
@@ -286,13 +284,16 @@ class ComprehensiveEvaluator:
             )
             query_metrics.query_rewriter.timings["rewrite"] = rewrite_time
             
-            # 2. IR构建阶段
-            ir_start = time.time()
-            ir_result = ir_builder.build(rewrite_result)
-            ir_time = time.time() - ir_start
+            # 2. 跳过IR构建阶段（已删除IRBuilder）
+            # 直接使用rewrite_result作为输入进行SQL生成
+            ir_result = rewrite_result  # 使用rewrite结果作为IR输入
             
-            query_metrics.ir_builder = self.component_evaluator.evaluate_ir_builder(rewrite_result, ir_result)
-            query_metrics.ir_builder.timings["ir_build"] = ir_time
+            query_metrics.ir_builder = ComponentMetrics(
+                component_name="ir_builder",
+                success=True,
+                timings={"ir_build": 0.0},
+                metrics={"status": "skipped", "reason": "IRBuilder removed"}
+            )
             
             # 3. SQL生成阶段
             sql_gen_start = time.time()

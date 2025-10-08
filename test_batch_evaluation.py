@@ -67,6 +67,12 @@ class TestResult:
     q2q_rag_entity_coverage: Optional[float] = None
     q2q_rag_concept_coverage: Optional[float] = None
     
+    # 增强RAG指标（新功能）
+    q2q_rag_semantic_similarity: Optional[float] = None
+    q2q_rag_fragment_quality: Optional[float] = None
+    q2q_rag_business_relevance: Optional[float] = None
+    q2q_rag_confidence: Optional[float] = None
+    
     # Retrieve阶段RAG指标
     retrieve_rag_recall_rate: Optional[float] = None
     retrieve_rag_precision_rate: Optional[float] = None
@@ -258,17 +264,23 @@ class BatchTestEvaluator:
                 print(f"[DEBUG] First fragment keys: {list(rag_fragments[0].keys())}")
                 print(f"[DEBUG] First fragment entity_type: {rag_fragments[0].get('entity_type', 'N/A')}")
             
-            # Q2Q阶段评估
+            # Q2Q阶段评估 - 使用增强RAG
             q2q_stage1_metrics = self._evaluate_stage1_metric_recall_with_vector(test_case, rag_fragments)
-            q2q_stage2_metrics = self._evaluate_stage2_semantic_fragments(test_case, rag_fragments)
+            q2q_stage2_metrics = self._evaluate_enhanced_rag_quality(test_case, rag_fragments)
             
-            # 保存Q2Q阶段指标
+            # 保存Q2Q阶段指标 - 使用增强RAG指标
             result.q2q_rag_recall_rate = q2q_stage1_metrics['metric_recall_rate']
             result.q2q_rag_precision_rate = q2q_stage1_metrics['metric_precision_rate']
             result.q2q_rag_entity_coverage = q2q_stage1_metrics['metric_coverage']
             result.q2q_rag_concept_coverage = q2q_stage2_metrics['knowledge_completeness']
-            result.q2q_rag_relevance_score = q2q_stage2_metrics['semantic_relevance']
+            result.q2q_rag_relevance_score = q2q_stage2_metrics['overall_relevance']  # 使用综合相关性评分
             result.q2q_rag_fragment_count = len(rag_fragments) if rag_fragments else 0
+            
+            # 添加新的增强指标
+            result.q2q_rag_semantic_similarity = q2q_stage2_metrics.get('semantic_relevance', 0.0)
+            result.q2q_rag_fragment_quality = q2q_stage2_metrics.get('fragment_quality', 0.0)
+            result.q2q_rag_business_relevance = q2q_stage2_metrics.get('business_relevance', 0.0)
+            result.q2q_rag_confidence = q2q_stage2_metrics.get('confidence', 0.0)
             
             print(f"[DEBUG] Q2Q Stage - Recall: {result.q2q_rag_recall_rate:.2%}, Precision: {result.q2q_rag_precision_rate:.2%}")
             
@@ -466,6 +478,71 @@ class BatchTestEvaluator:
         
         relevance = total_score / max_possible_score
         return min(relevance, 1.0)
+    
+    def _calculate_enhanced_relevance_score(self, question: str, rag_fragments: List[Dict]) -> float:
+        """使用增强RAG计算相关性评分（新功能）"""
+        try:
+            from datainsight_agent.services.core.adaptive_relevance_calculator import AdaptiveRelevanceCalculator
+            from datainsight_agent.services.core.metadata_loader import MetadataLoader
+            from datainsight_agent.clients.vector_store import EmbeddingModel
+            
+            # 初始化组件
+            metadata_loader = MetadataLoader()
+            embedder = EmbeddingModel()
+            relevance_calculator = AdaptiveRelevanceCalculator(embedder, metadata_loader)
+            
+            # 计算综合相关性
+            relevance_score = relevance_calculator.calculate_comprehensive_relevance(question, rag_fragments)
+            
+            return relevance_score.overall_score
+            
+        except Exception as e:
+            print(f"[ERROR] 增强相关性计算失败，回退到标准计算: {e}")
+            # 回退到标准计算
+            rag_context = ""
+            for fragment in rag_fragments:
+                metadata = fragment.get('metadata', {})
+                if metadata:
+                    canonical_name = metadata.get('canonical_name', '')
+                    aliases = metadata.get('aliases', [])
+                    if canonical_name:
+                        rag_context += canonical_name + " "
+                    for alias in aliases:
+                        rag_context += alias + " "
+            
+            return self._calculate_relevance_score(question, rag_context)
+    
+    def _evaluate_enhanced_rag_quality(self, test_case: TestCase, rag_fragments: List[Dict]) -> dict:
+        """使用增强RAG评估质量（新功能）"""
+        try:
+            from datainsight_agent.services.core.adaptive_relevance_calculator import AdaptiveRelevanceCalculator
+            from datainsight_agent.services.core.metadata_loader import MetadataLoader
+            from datainsight_agent.clients.vector_store import EmbeddingModel
+            
+            # 初始化组件
+            metadata_loader = MetadataLoader()
+            embedder = EmbeddingModel()
+            relevance_calculator = AdaptiveRelevanceCalculator(embedder, metadata_loader)
+            
+            # 计算综合相关性
+            relevance_score = relevance_calculator.calculate_comprehensive_relevance(test_case.question, rag_fragments)
+            
+            # 计算概念覆盖率
+            concept_coverage = self._calculate_concept_coverage_with_weights(rag_fragments, ['metric', 'dimension', 'mapping', 'concept'])
+            
+            return {
+                'semantic_relevance': relevance_score.semantic_similarity,
+                'fragment_quality': relevance_score.fragment_quality,
+                'business_relevance': relevance_score.business_relevance,
+                'overall_relevance': relevance_score.overall_score,
+                'confidence': relevance_score.confidence,
+                'knowledge_completeness': concept_coverage
+            }
+            
+        except Exception as e:
+            print(f"[ERROR] 增强RAG质量评估失败，回退到标准评估: {e}")
+            # 回退到标准评估
+            return self._evaluate_stage2_semantic_fragments(test_case, rag_fragments)
     
     def _extract_entities_from_question(self, question: str) -> set:
         """从问题中提取实体"""

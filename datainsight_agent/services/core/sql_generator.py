@@ -114,8 +114,12 @@ class SQLGenerator:
         # 构建WHERE子句
         where_conditions = []
         for filter_obj in ir.filters:
+            # 使用正确的时间字段
+            filter_field = filter_obj.field
+            if filter_field == 'month' and time_field != 'month':
+                filter_field = time_field
             where_conditions.append(self._render_filter(
-                filter_obj.field, filter_obj.operator, filter_obj.value,
+                filter_field, filter_obj.operator, filter_obj.value,
                 filter_obj.time_type, filter_obj.time_unit
             ))
 
@@ -187,6 +191,18 @@ class SQLGenerator:
         
         return sql
 
+    def _get_dynamic_quarter_mapping(self, time_field: str) -> str:
+        """动态生成季度映射，避免硬编码年份"""
+        from datetime import datetime
+        current_year = datetime.now().year
+        
+        return f"""CASE 
+            WHEN {time_field} BETWEEN '{current_year}-01' AND '{current_year}-03' THEN 'Q1'
+            WHEN {time_field} BETWEEN '{current_year}-04' AND '{current_year}-06' THEN 'Q2'
+            WHEN {time_field} BETWEEN '{current_year}-07' AND '{current_year}-09' THEN 'Q3'
+            WHEN {time_field} BETWEEN '{current_year}-10' AND '{current_year}-12' THEN 'Q4'
+        END"""
+
     def _map_field(self, field: str, time_field: str) -> str:
         """字段映射和验证"""
         # 中文字段名到英文字段名的映射
@@ -237,12 +253,7 @@ class SQLGenerator:
         
         # 处理复杂字段表达式（CASE表达式）
         complex_field_mapping = {
-            'quarter': """CASE 
-                WHEN month BETWEEN '2025-01' AND '2025-03' THEN 'Q1'
-                WHEN month BETWEEN '2025-04' AND '2025-06' THEN 'Q2'
-                WHEN month BETWEEN '2025-07' AND '2025-09' THEN 'Q3'
-                WHEN month BETWEEN '2025-10' AND '2025-12' THEN 'Q4'
-            END""",
+            'quarter': self._get_dynamic_quarter_mapping(time_field),
             'year_category': f'SUBSTRING({time_field}, 1, 4)',
             'year_period': f'SUBSTRING({time_field}, 1, 4)',
         }

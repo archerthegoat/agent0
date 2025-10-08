@@ -142,23 +142,29 @@ class OptimizedQ2QRewriter:
             if not kb_retriever:
                 return "", ""
 
-            # 获取向量检索结果 - 增加检索数量确保类型多样性
-            fragments = kb_retriever.search_topics_and_metrics(question, top_k=8)
-            rag_context = ""
-            rag_fragments = []
-
-            if fragments:
-                # 构建结构化的RAG上下文，包含实体信息
-                rag_context = self._build_structured_rag_context(fragments)
-                # 增加检索结果数量，确保类型多样性
-                rag_fragments = fragments[:6]  # 增加到6个，确保类型覆盖
+            # 使用新的增强RAG检索方法
+            enhanced_result = kb_retriever.search_with_enhanced_rag(question, top_k=8)
+            
+            # 从增强结果中提取fragments和context
+            fragments = enhanced_result.get('fragments', [])
+            enhanced_context = enhanced_result.get('context', '')
+            
+            # 构建结构化的RAG上下文
+            rag_context = self._build_structured_rag_context(fragments)
+            
+            # 如果增强RAG提供了更好的上下文，使用它
+            if enhanced_context and len(enhanced_context) > len(rag_context):
+                rag_context = enhanced_context
+            
+            # 使用增强RAG的fragments
+            rag_fragments = fragments[:6]  # 保持6个片段
             
             return rag_context, rag_fragments
         except Exception as e:
             # 记录异常但不中断流程
             try:
                 import logging
-                logging.getLogger(__name__).warning(f"RAG content retrieval failed: {str(e)}")
+                logging.getLogger(__name__).warning(f"Enhanced RAG content retrieval failed: {str(e)}")
             except UnicodeError:
                 pass
             return "", []
