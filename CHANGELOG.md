@@ -135,3 +135,28 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Kept
 - SQL 生成：保留 `services/core/sql_generator.py` 中季度映射规则（Q1/Q2/Q3/Q4），按用户要求不做改动。
+
+## [0.7.0] - 2025-10-08
+### Added
+- Enhanced RAG System: Added adaptive relevance calculation, dynamic pattern generation, intelligent entity type inference, and type-aware retrieval strategy
+- New core services: `AdaptiveRelevanceCalculator`, `DynamicPatternGenerator`, `IntelligentEntityTypeInferencer`, `TypeAwareRetrievalStrategy`, `MetadataLoader`
+- Enhanced KB Vector Retriever: Integrated all new RAG components for improved retrieval quality
+- Enhanced evaluation metrics: Added semantic similarity, fragment quality, business relevance, and confidence scoring
+
+### Changed
+- QueryRewriter: Now uses enhanced RAG system (`search_with_enhanced_rag`) instead of basic retrieval
+- Workflow: Updated to use `EnhancedKBVectorRetriever` for improved retrieval performance
+- Evaluation: Enhanced RAG quality assessment with comprehensive relevance scoring
+- Metric Parser: Prioritizes Q2Q-identified metrics for better accuracy
+
+### Removed
+- Legacy components: `datainsight_agent/components/` directory (IRBuilder, MetricResolver, etc.)
+- Duplicate services: `services/kb_vector_index.py`, `services/q2q_optimized.py`, `services/retrieval.py`
+- Unused metadata files: `intent_mappings.json`, `metric_synonyms.json`, `questions.json`
+- Test files: `test_enhanced_rag.py`, `test_evaluation_config.py`
+- LlamaIndex Agent tools: `tools/llamaindex_tools.py`, `adapters/llamaindex_adapter.py`
+
+### Fixed
+- Commit message encoding issues: Fixed Chinese character encoding in commit messages
+- Import references: Updated all imports to reflect new component structure
+- Configuration: Updated settings to handle removed metadata files
