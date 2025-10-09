@@ -166,4 +166,12 @@ AGGREGATION_MAPPING: Dict[str, Dict[str, str]] = {
     "bounce_rate": {"function": "AVG", "field": "bounce_rate_flag"}
 }
 
-# （已废弃）默认聚合与过滤常量不再使用，聚合/过滤由注册表提供
+# 聚合函数映射
+AGGREGATION_MAPPING = {
+    "sum": "SUM",
+    "count": "COUNT", 
+    "avg": "AVG",
+    "max": "MAX",
+    "min": "MIN",
+    "distinct": "COUNT(DISTINCT)"
+}

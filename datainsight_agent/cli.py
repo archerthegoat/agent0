@@ -821,7 +821,7 @@ def _run_pipeline_with_overrides(
 				concepts.append(keyword)
 		if concepts:
 			q2q["concepts"] = concepts
-			# print(f"[DEBUG] _run_pipeline_with_overrides: 提取concepts={concepts}")
+			# 提取concepts用于调试（已注释）
 	if q2q:
 		state["q2q"] = q2q
 	final: dict = {}
@@ -926,7 +926,7 @@ def observe(
 		existing_metric = list(rewrite_json.get("metric") or [])
 		existing_gb = list(rewrite_json.get("group_by") or [])
 		existing_concepts = list(rewrite_json.get("concepts") or [])
-		print(f"[DEBUG] CLI重新构建q2q: 原始concepts={existing_concepts}")
+		# CLI重新构建q2q: 原始concepts（调试信息已移除）
 		rewrite_json = {
 			"rewritten_question": question,
 			"metric": existing_metric,
@@ -934,7 +934,7 @@ def observe(
 			"time_filter": t_in.strip(),
 			"concepts": existing_concepts,
 		}
-		print(f"[DEBUG] CLI重新构建q2q: 新concepts={rewrite_json['concepts']}")
+		# CLI重新构建q2q: 新concepts（调试信息已移除）
 		print("[yellow]已接收时间范围，将继续执行。[/yellow]")
 
 	# Phase 2: Run full pipeline (inject Q2Q result first to avoid fallback)

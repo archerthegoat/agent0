@@ -1,0 +1,307 @@
+{
+  "clarify_001": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2023-06",
+      "metric": null
+    }
+  },
+  "clarify_002": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2025-08",
+      "metric": null
+    }
+  },
+  "clarify_003": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2023-01",
+      "metric": null
+    }
+  },
+  "clarify_004": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2023-01,2023-02",
+      "metric": null
+    }
+  },
+  "clarify_005": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2025-08",
+      "metric": null
+    }
+  },
+  "clarify_006": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2025-08,2025-09",
+      "metric": null
+    }
+  },
+  "clarify_007": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2025-08,2025-09",
+      "metric": null
+    }
+  },
+  "clarify_008": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2023-01,2023-02",
+      "metric": null
+    }
+  },
+  "clarify_009": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2023-01,2023-02,2023-03",
+      "metric": null
+    }
+  },
+  "clarify_010": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2023-01",
+      "metric": null
+    }
+  },
+  "clarify_011": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2025-08,2025-09",
+      "metric": null
+    }
+  },
+  "clarify_012": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2025-08,2025-09",
+      "metric": null
+    }
+  },
+  "clarify_013": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2023-01",
+      "metric": null
+    }
+  },
+  "clarify_014": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2025-08",
+      "metric": null
+    }
+  },
+  "clarify_015": {
+    "needs_clarification": true,
+    "missing": [
+      "time"
+    ],
+    "clarification_input": {
+      "time": "2023-01,2023-02,2023-03",
+      "metric": null
+    }
+  },
+  "clarify_016": {
+    "needs_clarification": true,
+    "missing": [
+      "metric"
+    ],
+    "clarification_input": {
+      "time": null,
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_017": {
+    "needs_clarification": true,
+    "missing": [
+      "metric"
+    ],
+    "clarification_input": {
+      "time": null,
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_018": {
+    "needs_clarification": true,
+    "missing": [
+      "metric"
+    ],
+    "clarification_input": {
+      "time": null,
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_019": {
+    "needs_clarification": true,
+    "missing": [
+      "metric"
+    ],
+    "clarification_input": {
+      "time": null,
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_020": {
+    "needs_clarification": true,
+    "missing": [
+      "metric"
+    ],
+    "clarification_input": {
+      "time": null,
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_021": {
+    "needs_clarification": true,
+    "missing": [
+      "metric"
+    ],
+    "clarification_input": {
+      "time": null,
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_022": {
+    "needs_clarification": true,
+    "missing": [
+      "metric"
+    ],
+    "clarification_input": {
+      "time": null,
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_023": {
+    "needs_clarification": true,
+    "missing": [
+      "metric"
+    ],
+    "clarification_input": {
+      "time": null,
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_024": {
+    "needs_clarification": true,
+    "missing": [
+      "metric"
+    ],
+    "clarification_input": {
+      "time": null,
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_025": {
+    "needs_clarification": true,
+    "missing": [
+      "metric"
+    ],
+    "clarification_input": {
+      "time": null,
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_026": {
+    "needs_clarification": true,
+    "missing": [
+      "time",
+      "metric"
+    ],
+    "clarification_input": {
+      "time": "2023-01,2023-02,2023-03",
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_027": {
+    "needs_clarification": true,
+    "missing": [
+      "time",
+      "metric"
+    ],
+    "clarification_input": {
+      "time": "2023-06",
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_028": {
+    "needs_clarification": true,
+    "missing": [
+      "time",
+      "metric"
+    ],
+    "clarification_input": {
+      "time": "2023-01,2023-02",
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_029": {
+    "needs_clarification": true,
+    "missing": [
+      "time",
+      "metric"
+    ],
+    "clarification_input": {
+      "time": "2023-08",
+      "metric": "月活跃用户数"
+    }
+  },
+  "clarify_030": {
+    "needs_clarification": true,
+    "missing": [
+      "time",
+      "metric"
+    ],
+    "clarification_input": {
+      "time": "2023-08,2023-09",
+      "metric": "月活跃用户数"
+    }
+  }
+}

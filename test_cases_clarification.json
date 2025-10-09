@@ -1,0 +1,1190 @@
+[
+  {
+    "question": "请帮我统计一下各个推广渠道的月活跃用户数和日活跃用户数。",
+    "expected_metric": [
+      "月活跃用户数",
+      "日活跃用户数"
+    ],
+    "expected_time_filter": "2023-06",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel, SUM(CASE WHEN metric = 'monthly_active_users' THEN value ELSE 0 END) AS monthly_active_users, SUM(CASE WHEN metric = 'daily_active_users' THEN value ELSE 0 END) AS daily_active_users FROM dws_user_activity WHERE date >= '2023-06-01' AND date <= '2023-06-30' GROUP BY channel;",
+    "expected_result": [
+      {
+        "channel": "渠道A",
+        "monthly_active_users": 12000,
+        "daily_active_users": 4000
+      },
+      {
+        "channel": "渠道B",
+        "monthly_active_users": 15000,
+        "daily_active_users": 5000
+      },
+      {
+        "channel": "渠道C",
+        "monthly_active_users": 10000,
+        "daily_active_users": 3500
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例用于验证在缺少时间维度的情况下，系统是否能够正确提示并获取完整的时间信息。",
+    "expected_rag_entities": [
+      "月活跃用户数",
+      "日活跃用户数",
+      "推广渠道"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "渠道分析"
+    ],
+    "id": "clarify_001"
+  },
+  {
+    "question": "请分析不同推广渠道的用户月活跃度和日活跃度情况。",
+    "expected_metric": [
+      "用户月活跃度",
+      "用户日活跃度"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel"
+    ],
+    "expected_sql": "SELECT channel, SUM(monthly_active_users) AS 用户月活跃度, SUM(daily_active_users) AS 用户日活跃度 FROM dws_user_activity WHERE date_format(activity_date, '%Y-%m') = '2025-08' GROUP BY channel;",
+    "expected_result": [
+      {
+        "channel": "微信广告",
+        "用户月活跃度": 12000,
+        "用户日活跃度": 4000
+      },
+      {
+        "channel": "百度搜索",
+        "用户月活跃度": 8000,
+        "用户日活跃度": 2600
+      },
+      {
+        "channel": "抖音短视频",
+        "用户月活跃度": 15000,
+        "用户日活跃度": 5000
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例描述：用户在询问不同推广渠道的用户月活跃度和日活跃度时，未提供具体的时间范围。",
+    "expected_rag_entities": [
+      "推广渠道",
+      "用户月活跃度",
+      "用户日活跃度"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度分析",
+      "渠道效果评估"
+    ],
+    "id": "clarify_002"
+  },
+  {
+    "question": "请分析我们的月活跃用户数在不同推广渠道上的分布情况。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2023-01",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS '推广渠道', COUNT(DISTINCT user_id) AS '月活跃用户数' FROM dws_user_activity WHERE activity_date >= '2023-01-01' AND activity_date < '2023-02-01' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "微信",
+        "月活跃用户数": 15000
+      },
+      {
+        "推广渠道": "微博",
+        "月活跃用户数": 12000
+      },
+      {
+        "推广渠道": "抖音",
+        "月活跃用户数": 18000
+      },
+      {
+        "推广渠道": "百度",
+        "月活跃用户数": 10000
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例描述：用户询问了月活跃用户数在不同推广渠道上的分布情况，但未提供具体的时间范围。",
+    "expected_rag_entities": [
+      "月活跃用户数",
+      "推广渠道"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度分析",
+      "渠道效果评估"
+    ],
+    "id": "clarify_003"
+  },
+  {
+    "question": "我想查看我们产品在不同推广渠道上的月活跃用户数和日活跃用户数，但具体的时间范围还没有确定。",
+    "expected_metric": [
+      "月活跃用户数",
+      "日活跃用户数"
+    ],
+    "expected_time_filter": "2023-01,2023-02",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel_code AS 推广渠道, SUM(monthly_active_users) AS 月活跃用户数, SUM(daily_active_users) AS 日活跃用户数 FROM dws_user_activity WHERE date IN ('2023-01', '2023-02') GROUP BY channel_code;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 15000,
+        "日活跃用户数": 5000
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 12000,
+        "日活跃用户数": 4000
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 10000,
+        "日活跃用户数": 3000
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例用于验证当用户查询缺少时间维度时，系统能否正确提示并获取所需的时间范围。",
+    "expected_rag_entities": [
+      "月活跃用户数",
+      "日活跃用户数",
+      "推广渠道"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "渠道分析"
+    ],
+    "id": "clarify_004"
+  },
+  {
+    "question": "请帮我分析一下不同推广渠道的MAU和DAU情况，以及独立访客数。",
+    "expected_metric": [
+      "mau",
+      "dau",
+      "uv"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel_code"
+    ],
+    "expected_sql": "SELECT channel_code, SUM(monthly_active_users) AS mau, SUM(daily_active_users) AS dau, SUM(unique_visitors) AS uv FROM dws_user_activity WHERE date >= '2025-08-01' AND date <= '2025-08-31' GROUP BY channel_code;",
+    "expected_result": [
+      {
+        "channel_code": "A001",
+        "mau": 12000,
+        "dau": 4000,
+        "uv": 3500
+      },
+      {
+        "channel_code": "A002",
+        "mau": 15000,
+        "dau": 5000,
+        "uv": 4500
+      },
+      {
+        "channel_code": "A003",
+        "mau": 10000,
+        "dau": 3000,
+        "uv": 2800
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例用于验证在缺少时间维度的情况下，系统能否正确引导用户提供具体的时间范围。",
+    "expected_rag_entities": [
+      "推广渠道",
+      "MAU",
+      "DAU",
+      "独立访客数"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "推广效果分析"
+    ],
+    "id": "clarify_005"
+  },
+  {
+    "question": "我想了解一下我们平台在不同推广渠道上的用户月活跃度和日活跃用户数的情况，能帮我查一下吗？",
+    "expected_metric": [
+      "用户月活跃度",
+      "日活跃用户数"
+    ],
+    "expected_time_filter": "2025-08,2025-09",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS 推广渠道, SUM(mau) AS 用户月活跃度, SUM(dau) AS 日活跃用户数 FROM dws_user_activity WHERE date BETWEEN '2025-08-01' AND '2025-09-30' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "微信",
+        "用户月活跃度": 500000,
+        "日活跃用户数": 150000
+      },
+      {
+        "推广渠道": "微博",
+        "用户月活跃度": 300000,
+        "日活跃用户数": 90000
+      },
+      {
+        "推广渠道": "抖音",
+        "用户月活跃度": 400000,
+        "日活跃用户数": 120000
+      }
+    ],
+    "category": "missing_time",
+    "description": "查询不同推广渠道上的用户月活跃度和日活跃用户数，但未提供具体的时间范围。",
+    "expected_rag_entities": [
+      "用户月活跃度",
+      "日活跃用户数",
+      "推广渠道"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "推广渠道分析"
+    ],
+    "id": "clarify_006"
+  },
+  {
+    "question": "我想查看我们产品在不同推广渠道上的用户月活跃度和日活跃度，以及独立访客数量。",
+    "expected_metric": [
+      "用户月活跃度",
+      "用户日活跃度",
+      "独立访客"
+    ],
+    "expected_time_filter": "2025-08,2025-09",
+    "expected_group_by": [
+      "channel"
+    ],
+    "expected_sql": "SELECT channel, SUM(mau) AS 用户月活跃度, SUM(dau) AS 用户日活跃度, SUM(uv) AS 独立访客 FROM dws_user_activity WHERE date BETWEEN '2025-08-01' AND '2025-09-30' GROUP BY channel;",
+    "expected_result": [
+      {
+        "channel": "微信广告",
+        "用户月活跃度": 120000,
+        "用户日活跃度": 40000,
+        "独立访客": 60000
+      },
+      {
+        "channel": "微博广告",
+        "用户月活跃度": 80000,
+        "用户日活跃度": 25000,
+        "独立访客": 40000
+      },
+      {
+        "channel": "搜索引擎",
+        "用户月活跃度": 150000,
+        "用户日活跃度": 50000,
+        "独立访客": 70000
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例描述：用户希望查看不同推广渠道上的用户活跃度和独立访客数量，但未指定具体的时间范围。",
+    "expected_rag_entities": [
+      "用户月活跃度",
+      "用户日活跃度",
+      "独立访客",
+      "推广渠道"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "推广渠道分析"
+    ],
+    "id": "clarify_007"
+  },
+  {
+    "question": "我想了解一下我们不同推广渠道的MAU和DAU情况，以及每个渠道的独立访客数量。",
+    "expected_metric": [
+      "MAU",
+      "DAU",
+      "UV"
+    ],
+    "expected_time_filter": "2023-01,2023-02",
+    "expected_group_by": [
+      "channel_code"
+    ],
+    "expected_sql": "SELECT channel_code, SUM(CASE WHEN metric = 'MAU' THEN value ELSE 0 END) AS MAU, SUM(CASE WHEN metric = 'DAU' THEN value ELSE 0 END) AS DAU, SUM(CASE WHEN metric = 'UV' THEN value ELSE 0 END) AS UV FROM dws_user_activity WHERE metric IN ('MAU', 'DAU', 'UV') AND date BETWEEN '2023-01-01' AND '2023-02-28' GROUP BY channel_code;",
+    "expected_result": [
+      {
+        "channel_code": "A001",
+        "MAU": 12000,
+        "DAU": 4000,
+        "UV": 3500
+      },
+      {
+        "channel_code": "B002",
+        "MAU": 9000,
+        "DAU": 3000,
+        "UV": 2800
+      },
+      {
+        "channel_code": "C003",
+        "MAU": 7000,
+        "DAU": 2500,
+        "UV": 2200
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例描述：用户希望了解不同推广渠道的月活跃用户数（MAU）、日活跃用户数（DAU）和独立访客数（UV），但未提供具体的时间范围。",
+    "expected_rag_entities": [
+      "MAU",
+      "DAU",
+      "UV",
+      "channel_code"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户数",
+      "日活跃用户数",
+      "独立访客数",
+      "推广渠道"
+    ],
+    "id": "clarify_008"
+  },
+  {
+    "question": "我想了解我们不同推广渠道在最近的用户月活跃度情况，能帮我查一下吗？",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2023-01,2023-02,2023-03",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS 推广渠道, SUM(mau) AS 月活跃用户数 FROM dws_user_activity WHERE date BETWEEN '2023-01' AND '2023-03' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 12000
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 15000
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 10000
+      }
+    ],
+    "category": "missing_time",
+    "description": "用户希望了解不同推广渠道的用户月活跃度情况，但未提供具体的时间范围。",
+    "expected_rag_entities": [
+      "用户月活跃度",
+      "推广渠道"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度分析",
+      "渠道效果评估"
+    ],
+    "id": "clarify_009"
+  },
+  {
+    "question": "我想查看我们平台的月活跃用户数和日活跃用户数，以及独立访客数，不同推广渠道的表现如何？",
+    "expected_metric": [
+      "月活跃用户数",
+      "日活跃用户数",
+      "独立访客数"
+    ],
+    "expected_time_filter": "2023-01",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel_code AS 推广渠道, COUNT(DISTINCT CASE WHEN metric = 'mau' THEN user_id END) AS 月活跃用户数, COUNT(DISTINCT CASE WHEN metric = 'dau' THEN user_id END) AS 日活跃用户数, COUNT(DISTINCT CASE WHEN metric = 'uv' THEN user_id END) AS 独立访客数 FROM dws_user_activity WHERE metric IN ('mau', 'dau', 'uv') AND date_trunc('month', activity_date) = '2023-01-01' GROUP BY channel_code;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 12000,
+        "日活跃用户数": 4000,
+        "独立访客数": 5000
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 15000,
+        "日活跃用户数": 5000,
+        "独立访客数": 6000
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 10000,
+        "日活跃用户数": 3500,
+        "独立访客数": 4500
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例用于验证当用户提出缺少时间维度的查询时，系统能否正确提示并澄清所需的时间范围。",
+    "expected_rag_entities": [
+      "月活跃用户数",
+      "日活跃用户数",
+      "独立访客数",
+      "推广渠道"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "推广效果分析"
+    ],
+    "id": "clarify_010"
+  },
+  {
+    "question": "请分析我们平台的用户月活跃度和日活跃用户数，特别是在不同推广渠道上的表现。",
+    "expected_metric": [
+      "用户月活跃度",
+      "日活跃用户数"
+    ],
+    "expected_time_filter": "2025-08,2025-09",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel, SUM(monthly_active_users) AS 用户月活跃度, SUM(daily_active_users) AS 日活跃用户数 FROM dws_user_activity WHERE date BETWEEN '2025-08' AND '2025-09' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "微信",
+        "用户月活跃度": 120000,
+        "日活跃用户数": 40000
+      },
+      {
+        "推广渠道": "微博",
+        "用户月活跃度": 80000,
+        "日活跃用户数": 25000
+      },
+      {
+        "推广渠道": "抖音",
+        "用户月活跃度": 150000,
+        "日活跃用户数": 50000
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例描述：用户请求分析平台的用户月活跃度和日活跃用户数，并关注不同推广渠道的表现，但未提供具体的时间范围。",
+    "expected_rag_entities": [
+      "用户月活跃度",
+      "日活跃用户数",
+      "推广渠道"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度分析",
+      "推广渠道效果评估"
+    ],
+    "id": "clarify_011"
+  },
+  {
+    "question": "我想查看不同推广渠道的MAU数据，以便了解各渠道的用户活跃度。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08,2025-09",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS 推广渠道, SUM(mau) AS 月活跃用户数 FROM dws_user_activity WHERE time IN ('2025-08', '2025-09') GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 12000
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 15000
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 10000
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例用于验证当用户查询缺少时间维度时，系统能否正确引导用户补充时间信息。",
+    "expected_rag_entities": [
+      "MAU",
+      "推广渠道"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "渠道分析"
+    ],
+    "id": "clarify_012"
+  },
+  {
+    "question": "请帮我统计一下各个推广渠道的月活跃用户数和日活跃用户数。",
+    "expected_metric": [
+      "月活跃用户数",
+      "日活跃用户数"
+    ],
+    "expected_time_filter": "2023-01",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel_code AS 推广渠道, SUM(mau) AS 月活跃用户数, SUM(dau) AS 日活跃用户数 FROM dws_user_activity WHERE dt = '2023-01' GROUP BY channel_code;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 15000,
+        "日活跃用户数": 5000
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 10000,
+        "日活跃用户数": 3000
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 12000,
+        "日活跃用户数": 4000
+      }
+    ],
+    "category": "missing_time",
+    "description": "用户请求统计各推广渠道的月活跃用户数和日活跃用户数，但未指定具体的时间范围。",
+    "expected_rag_entities": [
+      "推广渠道",
+      "月活跃用户数",
+      "日活跃用户数"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "渠道分析"
+    ],
+    "id": "clarify_013"
+  },
+  {
+    "question": "我想了解我们产品在不同推广渠道上的月活跃用户数和日活跃用户数的情况，特别是在高会员等级用户中的表现。",
+    "expected_metric": [
+      "月活跃用户数",
+      "日活跃用户数"
+    ],
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "推广渠道",
+      "会员等级"
+    ],
+    "expected_sql": "SELECT channel_code AS 推广渠道, user_level AS 会员等级, SUM(CASE WHEN metric_type = 'MAU' THEN value ELSE 0 END) AS 月活跃用户数, SUM(CASE WHEN metric_type = 'DAU' THEN value ELSE 0 END) AS 日活跃用户数 FROM dws_user_activity WHERE metric_type IN ('MAU', 'DAU') AND date >= '2025-08-01' AND date <= '2025-08-31' GROUP BY channel_code, user_level;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "会员等级": "高级",
+        "月活跃用户数": 15000,
+        "日活跃用户数": 5000
+      },
+      {
+        "推广渠道": "渠道B",
+        "会员等级": "高级",
+        "月活跃用户数": 12000,
+        "日活跃用户数": 4000
+      },
+      {
+        "推广渠道": "渠道C",
+        "会员等级": "高级",
+        "月活跃用户数": 10000,
+        "日活跃用户数": 3500
+      }
+    ],
+    "category": "missing_time",
+    "description": "测试用例描述：用户希望了解在特定时间段内，不同推广渠道上高会员等级用户的月活跃用户数和日活跃用户数的情况，但未明确指定具体的时间段。",
+    "expected_rag_entities": [
+      "月活跃用户数",
+      "日活跃用户数",
+      "推广渠道",
+      "会员等级"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度分析",
+      "推广效果评估"
+    ],
+    "id": "clarify_014"
+  },
+  {
+    "question": "我想查看我们产品在不同推广渠道上的月活跃用户数和日活跃用户数，可以帮我统计一下吗？",
+    "expected_metric": [
+      "月活跃用户数",
+      "日活跃用户数"
+    ],
+    "expected_time_filter": "2023-01,2023-02,2023-03",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS '推广渠道', SUM(CASE WHEN metric = 'monthly_active_users' THEN value ELSE 0 END) AS '月活跃用户数', SUM(CASE WHEN metric = 'daily_active_users' THEN value ELSE 0 END) AS '日活跃用户数' FROM dws_user_activity WHERE metric IN ('monthly_active_users', 'daily_active_users') AND time IN ('2023-01', '2023-02', '2023-03') GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 12000,
+        "日活跃用户数": 4000
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 15000,
+        "日活跃用户数": 5000
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 10000,
+        "日活跃用户数": 3500
+      }
+    ],
+    "category": "missing_time",
+    "description": "用户希望查看不同推广渠道上的月活跃用户数和日活跃用户数，但未提供具体的时间范围。",
+    "expected_rag_entities": [
+      "月活跃用户数",
+      "日活跃用户数",
+      "推广渠道"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "渠道分析"
+    ],
+    "id": "clarify_015"
+  },
+  {
+    "question": "我想了解2025年8月通过不同推广渠道的用户表现情况。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel"
+    ],
+    "expected_sql": "SELECT channel, COUNT(DISTINCT user_id) AS monthly_active_users FROM dws_user_activity WHERE date_format(activity_date, '%Y-%m') = '2025-08' GROUP BY channel;",
+    "expected_result": [
+      {
+        "channel": "微信",
+        "monthly_active_users": 123456
+      },
+      {
+        "channel": "微博",
+        "monthly_active_users": 789012
+      },
+      {
+        "channel": "抖音",
+        "monthly_active_users": 345678
+      }
+    ],
+    "category": "missing_metric",
+    "description": "用户询问了关于2025年8月通过不同推广渠道的用户表现情况，但未明确具体的指标（如月活跃用户数）。",
+    "expected_rag_entities": [
+      "2025年8月",
+      "推广渠道",
+      "用户表现"
+    ],
+    "expected_rag_concepts": [
+      "时间过滤",
+      "分组维度",
+      "用户指标"
+    ],
+    "id": "clarify_016"
+  },
+  {
+    "question": "我想了解一下2025年8月不同推广渠道的用户表现情况。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel_code"
+    ],
+    "expected_sql": "SELECT channel_code, COUNT(DISTINCT user_id) AS monthly_active_users FROM dws_user_activity WHERE date_format(activity_date, '%Y-%m') = '2025-08' GROUP BY channel_code;",
+    "expected_result": [
+      {
+        "channel_code": "渠道A",
+        "monthly_active_users": 12000
+      },
+      {
+        "channel_code": "渠道B",
+        "monthly_active_users": 15000
+      },
+      {
+        "channel_code": "渠道C",
+        "monthly_active_users": 18000
+      }
+    ],
+    "category": "missing_metric",
+    "description": "用户询问了2025年8月不同推广渠道的用户表现情况，但未明确具体的指标（例如：月活跃用户数）。",
+    "expected_rag_entities": [
+      "2025年8月",
+      "推广渠道",
+      "用户表现"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户数",
+      "用户行为分析"
+    ],
+    "id": "clarify_017"
+  },
+  {
+    "question": "我想了解一下2025年8月通过不同推广渠道的用户表现情况。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS 推广渠道, COUNT(DISTINCT user_id) AS 月活跃用户数 FROM dws_user_activity WHERE date_format(activity_date, '%Y-%m') = '2025-08' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 12000
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 8500
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 15000
+      }
+    ],
+    "category": "missing_metric",
+    "description": "用户询问了2025年8月通过不同推广渠道的用户表现情况，但未明确具体的指标。",
+    "expected_rag_entities": [
+      "2025年8月",
+      "推广渠道",
+      "用户表现"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户数",
+      "渠道分析"
+    ],
+    "id": "clarify_018"
+  },
+  {
+    "question": "我想了解2025年8月通过不同推广渠道获取的用户表现情况。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS 推广渠道, COUNT(DISTINCT user_id) AS 月活跃用户数 FROM dws_user_activity WHERE date_format(activity_date, '%Y-%m') = '2025-08' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 15000
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 12000
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 8000
+      }
+    ],
+    "category": "missing_metric",
+    "description": "用户询问了2025年8月通过不同推广渠道获取的用户表现情况，但未明确具体的指标。",
+    "expected_rag_entities": [
+      "2025年8月",
+      "推广渠道",
+      "用户表现"
+    ],
+    "expected_rag_concepts": [
+      "时间过滤",
+      "分组维度",
+      "用户活跃度"
+    ],
+    "id": "clarify_019"
+  },
+  {
+    "question": "2025年8月不同推广渠道的用户表现如何？",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel"
+    ],
+    "expected_sql": "SELECT channel, COUNT(DISTINCT user_id) AS monthly_active_users FROM dws_user_activity WHERE date_format(activity_date, '%Y-%m') = '2025-08' GROUP BY channel;",
+    "expected_result": [
+      {
+        "channel": "渠道A",
+        "monthly_active_users": 12345
+      },
+      {
+        "channel": "渠道B",
+        "monthly_active_users": 67890
+      },
+      {
+        "channel": "渠道C",
+        "monthly_active_users": 54321
+      }
+    ],
+    "category": "missing_metric",
+    "description": "测试用例描述：用户在查询2025年8月不同推广渠道的用户表现时，没有明确指出具体的指标。",
+    "expected_rag_entities": [
+      "2025-08",
+      "channel",
+      "用户表现"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户数",
+      "推广渠道"
+    ],
+    "id": "clarify_020"
+  },
+  {
+    "question": "2025年8月，我们想了解不同推广渠道的用户表现情况，请提供相关数据。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS 推广渠道, COUNT(DISTINCT user_id) AS 月活跃用户数 FROM dws_user_activity WHERE date_format(activity_date, '%Y-%m') = '2025-08' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 12000
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 15000
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 10000
+      }
+    ],
+    "category": "missing_metric",
+    "description": "用户询问了2025年8月不同推广渠道的用户表现情况，但未明确具体需要哪个指标。",
+    "expected_rag_entities": [
+      "2025年8月",
+      "推广渠道",
+      "用户表现"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户数",
+      "用户活跃度"
+    ],
+    "id": "clarify_021"
+  },
+  {
+    "question": "我想了解2025年8月通过不同推广渠道的用户表现情况。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS 推广渠道, COUNT(DISTINCT user_id) AS 月活跃用户数 FROM dws_user_activity WHERE DATE_FORMAT(activity_date, '%Y-%m') = '2025-08' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "微信",
+        "月活跃用户数": 12000
+      },
+      {
+        "推广渠道": "微博",
+        "月活跃用户数": 8000
+      },
+      {
+        "推广渠道": "抖音",
+        "月活跃用户数": 15000
+      },
+      {
+        "推广渠道": "百度",
+        "月活跃用户数": 7000
+      }
+    ],
+    "category": "missing_metric",
+    "description": "用户询问了2025年8月不同推广渠道的用户表现情况，但未明确具体的指标（如月活跃用户数）。",
+    "expected_rag_entities": [
+      "2025年8月",
+      "推广渠道",
+      "用户表现"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户数",
+      "推广渠道分析"
+    ],
+    "id": "clarify_022"
+  },
+  {
+    "question": "2025年8月，不同推广渠道的用户表现如何？",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel_code"
+    ],
+    "expected_sql": "SELECT channel_code, COUNT(DISTINCT user_id) AS monthly_active_users FROM dws_user_activity WHERE activity_date BETWEEN '2025-08-01' AND '2025-08-31' GROUP BY channel_code;",
+    "expected_result": [
+      {
+        "channel_code": "渠道A",
+        "monthly_active_users": 12345
+      },
+      {
+        "channel_code": "渠道B",
+        "monthly_active_users": 67890
+      },
+      {
+        "channel_code": "渠道C",
+        "monthly_active_users": 54321
+      }
+    ],
+    "category": "missing_metric",
+    "description": "测试用例描述：用户询问了2025年8月不同推广渠道的用户表现，但未明确具体的指标。期望的指标是月活跃用户数。",
+    "expected_rag_entities": [
+      "2025-08",
+      "channel_code",
+      "用户表现"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "推广渠道"
+    ],
+    "id": "clarify_023"
+  },
+  {
+    "question": "请提供2025年8月按推广渠道和用户等级划分的用户活动数据。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel",
+      "user_level"
+    ],
+    "expected_sql": "SELECT channel, user_level, COUNT(DISTINCT user_id) AS monthly_active_users FROM dws_user_activity WHERE month = '2025-08' GROUP BY channel, user_level;",
+    "expected_result": [
+      {
+        "channel": "微信",
+        "user_level": "普通",
+        "monthly_active_users": 123456
+      },
+      {
+        "channel": "微信",
+        "user_level": "VIP",
+        "monthly_active_users": 78901
+      },
+      {
+        "channel": "微博",
+        "user_level": "普通",
+        "monthly_active_users": 98765
+      },
+      {
+        "channel": "微博",
+        "user_level": "VIP",
+        "monthly_active_users": 65432
+      }
+    ],
+    "category": "missing_metric",
+    "description": "用户请求了2025年8月按推广渠道和用户等级划分的用户活动数据，但未明确具体需要哪个活动指标。",
+    "expected_rag_entities": [
+      "2025年8月",
+      "推广渠道",
+      "用户等级",
+      "用户活动数据"
+    ],
+    "expected_rag_concepts": [
+      "月活跃用户数",
+      "用户活动分析",
+      "渠道分析",
+      "用户等级分析"
+    ],
+    "id": "clarify_024"
+  },
+  {
+    "question": "请帮我分析2025年8月不同推广渠道的用户表现情况。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2025-08",
+    "expected_group_by": [
+      "channel_code"
+    ],
+    "expected_sql": "SELECT channel_code, COUNT(DISTINCT user_id) AS monthly_active_users FROM dws_user_activity WHERE date_format(activity_date, '%Y-%m') = '2025-08' GROUP BY channel_code;",
+    "expected_result": [
+      {
+        "channel_code": "channel_1",
+        "monthly_active_users": 12000
+      },
+      {
+        "channel_code": "channel_2",
+        "monthly_active_users": 15000
+      },
+      {
+        "channel_code": "channel_3",
+        "monthly_active_users": 18000
+      }
+    ],
+    "category": "missing_metric",
+    "description": "用户请求分析2025年8月不同推广渠道的用户表现情况，但未明确指出具体要分析的指标。",
+    "expected_rag_entities": [
+      "2025-08",
+      "channel_code",
+      "dws_user_activity"
+    ],
+    "expected_rag_concepts": [
+      "用户表现分析",
+      "推广渠道"
+    ],
+    "id": "clarify_025"
+  },
+  {
+    "question": "我想了解不同推广渠道的用户活跃情况，特别是新用户的增长趋势。",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2023-01,2023-02,2023-03",
+    "expected_group_by": [
+      "channel",
+      "user_level"
+    ],
+    "expected_sql": "SELECT channel, user_level, COUNT(DISTINCT user_id) AS monthly_active_users FROM dws_user_activity WHERE month IN ('2023-01', '2023-02', '2023-03') GROUP BY channel, user_level;",
+    "expected_result": [
+      {
+        "channel": "微信广告",
+        "user_level": "新用户",
+        "monthly_active_users": 1200
+      },
+      {
+        "channel": "百度推广",
+        "user_level": "新用户",
+        "monthly_active_users": 800
+      },
+      {
+        "channel": "线下活动",
+        "user_level": "新用户",
+        "monthly_active_users": 600
+      },
+      {
+        "channel": "微信广告",
+        "user_level": "老用户",
+        "monthly_active_users": 2400
+      },
+      {
+        "channel": "百度推广",
+        "user_level": "老用户",
+        "monthly_active_users": 1800
+      },
+      {
+        "channel": "线下活动",
+        "user_level": "老用户",
+        "monthly_active_users": 1200
+      }
+    ],
+    "category": "missing_both",
+    "description": "缺少时间和指标的查询，需要用户明确具体的时间范围和关注的活跃用户指标。",
+    "expected_rag_entities": [
+      "推广渠道",
+      "用户活跃情况",
+      "新用户"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "渠道分析",
+      "用户增长趋势"
+    ],
+    "id": "clarify_026"
+  },
+  {
+    "question": "我想了解不同推广渠道的用户活跃情况，能帮我分析一下吗？",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2023-06",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS 推广渠道, COUNT(DISTINCT user_id) AS 月活跃用户数 FROM dws_user_activity WHERE date_format(activity_date, 'yyyy-MM') = '2023-06' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "微信",
+        "月活跃用户数": 12000
+      },
+      {
+        "推广渠道": "微博",
+        "月活跃用户数": 8500
+      },
+      {
+        "推广渠道": "抖音",
+        "月活跃用户数": 15000
+      },
+      {
+        "推广渠道": "其他",
+        "月活跃用户数": 4500
+      }
+    ],
+    "category": "missing_both",
+    "description": "缺少时间和指标的查询，用户希望了解不同推广渠道的用户活跃情况。",
+    "expected_rag_entities": [
+      "推广渠道",
+      "用户活跃情况"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "推广效果分析"
+    ],
+    "id": "clarify_027"
+  },
+  {
+    "question": "我想了解不同推广渠道的用户活跃情况，可以帮我分析一下吗？",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2023-01,2023-02",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS '推广渠道', SUM(monthly_active_users) AS '月活跃用户数' FROM dws_user_activity WHERE date BETWEEN '2023-01-01' AND '2023-02-28' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 15000
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 20000
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 12000
+      }
+    ],
+    "category": "missing_both",
+    "description": "用户希望了解不同推广渠道的用户活跃情况，但没有明确指定具体的时间范围和指标。",
+    "expected_rag_entities": [
+      "推广渠道",
+      "用户活跃情况"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "渠道分析"
+    ],
+    "id": "clarify_028"
+  },
+  {
+    "question": "我想了解不同推广渠道的用户活跃情况，可以帮我分析一下吗？",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2023-08",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS 推广渠道, COUNT(DISTINCT user_id) AS 月活跃用户数 FROM dws_user_activity WHERE DATE_FORMAT(activity_date, '%Y-%m') = '2023-08' GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "渠道A",
+        "月活跃用户数": 1200
+      },
+      {
+        "推广渠道": "渠道B",
+        "月活跃用户数": 850
+      },
+      {
+        "推广渠道": "渠道C",
+        "月活跃用户数": 600
+      }
+    ],
+    "category": "missing_both",
+    "description": "用户希望了解不同推广渠道的用户活跃情况，但未指定具体的时间和指标。",
+    "expected_rag_entities": [
+      "推广渠道",
+      "用户活跃情况"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度",
+      "渠道分析"
+    ],
+    "id": "clarify_029"
+  },
+  {
+    "question": "我想了解一下我们不同推广渠道的用户活跃情况，你能帮我分析一下吗？",
+    "expected_metric": "月活跃用户数",
+    "expected_time_filter": "2023-08,2023-09",
+    "expected_group_by": [
+      "推广渠道"
+    ],
+    "expected_sql": "SELECT channel AS 推广渠道, SUM(monthly_active_users) AS 月活跃用户数 FROM dws_user_activity WHERE date_format(activity_month, '%Y-%m') IN ('2023-08', '2023-09') GROUP BY channel;",
+    "expected_result": [
+      {
+        "推广渠道": "微信",
+        "月活跃用户数": 120000
+      },
+      {
+        "推广渠道": "微博",
+        "月活跃用户数": 85000
+      },
+      {
+        "推广渠道": "抖音",
+        "月活跃用户数": 150000
+      }
+    ],
+    "category": "missing_both",
+    "description": "缺少时间和指标的查询，需要用户明确具体的活跃度指标和时间范围。",
+    "expected_rag_entities": [
+      "推广渠道",
+      "月活跃用户数"
+    ],
+    "expected_rag_concepts": [
+      "用户活跃度分析",
+      "渠道效果评估"
+    ],
+    "id": "clarify_030"
+  }
+]

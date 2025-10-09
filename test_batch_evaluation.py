@@ -4,6 +4,13 @@
 支持RAG相关评价指标：召回率、准确率、相关性评分等
 """
 
+import sys
+import io
+# 修复Windows终端编码问题
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 import time
 import json
 import asyncio
@@ -14,17 +21,47 @@ from datetime import datetime
 import traceback
 
 from datainsight_agent.services.core.query_rewriter import OptimizedQ2QRewriter as QueryRewriter
-from datainsight_agent.components.ir_builder import IRBuilder
 from datainsight_agent.services.core.sql_generator import SQLGenerator as SQLGeneratorComponent
 from datainsight_agent.services.core.sql_executor import SQLExecutor as SQLExecutorComponent
 from datainsight_agent.orchestrator.li.workflow import LIWorkflow
 from datainsight_agent.services.db_bootstrap import init_mysql_min
-from test_evaluation_config import (
-    CORE_METRICS, METRIC_KEYWORDS, TIME_KEYWORDS, QUERY_KEYWORDS,
-    WEIGHT_CONFIG, QUALITY_THRESHOLDS, MOCK_DATA_CONFIG, EXPECTED_ENTITY_TYPES,
-    QUESTION_TYPE_ENTITY_MAPPING, BUSINESS_CONCEPT_KEYWORDS, CONCEPT_COVERAGE_WEIGHTS
-)
 from datainsight_agent.config.manager import ConfigManager
+
+# 常量定义
+METRIC_KEYWORDS = {
+    'core': ['mau', 'dau', 'uv', 'pv', 'retention_rate', 'conversion_rate', 'revenue', 'orders', 'new_users', 'churn_users', 'arpu', 'gmv', 'aov', 'roi', 'cac', 'clv', 'bounce_rate', 'session_duration', 'page_views_per_session', 'return_visitor_rate', 'cart_abandonment_rate', 'search_success_rate', 'recommendation_click_rate', 'customer_satisfaction', 'net_promoter_score', 'support_ticket_count', 'average_resolution_time', 'repeat_purchase_rate', 'inventory_turnover', 'refund_rate', 'email_open_rate', 'email_click_rate', 'app_crash_rate', 'api_response_time', 'search_conversion_rate', 'social_share_count', 'average_basket_size', 'user_engagement_score', 'content_virality_score'],
+    'chinese_full': ['月活跃用户数', '日活跃用户数', '独立访客数', '页面浏览量', '用户留存率', '转化率', '收入', '订单数', '新用户数', '流失用户数', '平均每用户收入', '总交易额', '平均订单价值', '投资回报率', '客户获取成本', '客户生命周期价值', '跳出率', '会话时长', '页面浏览数/会话', '回访率', '购物车放弃率', '搜索成功率', '推荐点击率', '客户满意度', '净推荐值', '客服工单数', '平均解决时间', '重复购买率', '库存周转率', '退款率', '邮件打开率', '邮件点击率', 'APP崩溃率', 'API响应时间', '搜索转化率', '社交分享数', '平均购物篮大小', '用户参与度评分', '内容病毒性评分'],
+    'chinese_short': ['月活', '日活', '独立访客', '页面浏览', '留存率', '转化', '收入', '订单', '新用户', '流失用户', 'ARPU', 'GMV', 'AOV', 'ROI', 'CAC', 'CLV', '跳出', '会话', '页面深度', '回访', '放弃', '搜索', '推荐', '满意度', 'NPS', '工单', '解决', '复购', '周转', '退款', '打开', '点击', '崩溃', '响应', '转化', '分享', '购物篮', '参与', '病毒'],
+    'aliases': ['MAU', 'DAU', 'UV', 'PV', 'Retention Rate', 'Conversion Rate', 'Revenue', 'Orders', 'New Users', 'Churn Users', 'ARPU', 'GMV', 'AOV', 'ROI', 'CAC', 'CLV', 'Bounce Rate', 'Session Duration', 'Pages per Session', 'Return Visitor Rate', 'Cart Abandonment Rate', 'Search Success Rate', 'Recommendation Click Rate', 'Customer Satisfaction', 'NPS', 'Support Tickets', 'Resolution Time', 'Repeat Purchase Rate', 'Inventory Turnover', 'Refund Rate', 'Email Open Rate', 'Email Click Rate', 'App Crash Rate', 'API Response Time', 'Search Conversion Rate', 'Social Shares', 'Basket Size', 'Engagement Score', 'Virality Score']
+}
+
+# 动态生成时间关键词，避免硬编码年份
+def _generate_time_keywords():
+    """动态生成时间关键词"""
+    from datetime import datetime
+    current_year = datetime.now().year
+    current_month = datetime.now().month
+    
+    # 生成当前年份的月份
+    year_months = [f"{current_year}-{i:02d}" for i in range(1, 13)]
+    
+    # 季度和月份关键词
+    quarters = ['第一季度', '第二季度', '第三季度', '第四季度', 'Q1', 'Q2', 'Q3', 'Q4']
+    months = [f"{i}月" for i in range(1, 13)]
+    
+    # 相对时间关键词
+    relative_times = ['今天', '昨天', '本周', '上周', '本月', '上月', '今年', '去年']
+    
+    return year_months + quarters + months + relative_times
+
+TIME_KEYWORDS = _generate_time_keywords()
+
+CONCEPT_COVERAGE_WEIGHTS = {
+    'metric': 0.4,
+    'dimension': 0.3,
+    'mapping': 0.2,
+    'concept': 0.1
+}
 
 
 @dataclass
@@ -105,13 +142,13 @@ class BatchTestEvaluator:
     def __init__(self):
         self.test_cases: List[TestCase] = []
         self.results: List[TestResult] = []
+        self.clarification_config: Dict[str, Any] = {}
         
         # 初始化组件
         from datainsight_agent.config.settings import load_settings
         settings = load_settings()
         
         self.query_rewriter = QueryRewriter()
-        self.ir_builder = IRBuilder()
         self.sql_generator = SQLGeneratorComponent()
         self.sql_executor = SQLExecutorComponent(settings)
         self.pipeline = LIWorkflow()
@@ -145,6 +182,16 @@ class BatchTestEvaluator:
         
         print(f"[SUCCESS] Loaded {len(self.test_cases)} test cases")
     
+    def load_clarification_config(self, config_file: str):
+        """加载澄清配置文件"""
+        try:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                self.clarification_config = json.load(f)
+            print(f"[SUCCESS] Loaded clarification config from {config_file}")
+        except Exception as e:
+            print(f"[WARNING] Failed to load clarification config: {e}")
+            self.clarification_config = {}
+    
     def _create_mock_kb_entities(self, expected_entities):
         """基于expected_rag_entities创建模拟的kb_entities"""
         if not expected_entities:
@@ -153,12 +200,13 @@ class BatchTestEvaluator:
         mock_entities = []
         for entity in expected_entities:
             # 使用配置判断实体类型
-            entity_type = 'metric' if entity.lower() in CORE_METRICS else 'dimension'
+            # 使用简单判断实体类型
+            entity_type = 'metric' if entity.lower() in ['mau', 'dau', 'uv', 'pv', 'retention_rate'] else 'dimension'
             
             mock_entity = {
-                'entity_id': f"{MOCK_DATA_CONFIG['entity_id_prefix']}{entity}",
+                'entity_id': f"mock_{entity}",
                 'entity_type': entity_type,
-                'score': MOCK_DATA_CONFIG['default_score'],
+                'score': 0.8,
                 'metadata': {
                     'canonical_name': entity,
                     'aliases': [entity],
@@ -176,6 +224,11 @@ class BatchTestEvaluator:
         
         try:
             print(f"[DEBUG] Running test: {test_case.id}")
+            
+            # 检查是否需要澄清流程
+            if self._needs_clarification(test_case):
+                return self._simulate_clarification_flow(test_case)
+            
             # 1. Query Rewriter (包含RAG检索)
             qr_start = time.time()
             rewritten_query = self.query_rewriter.rewrite(test_case.question)
@@ -187,16 +240,28 @@ class BatchTestEvaluator:
                 clarified_query = self._simulate_time_clarification(rewritten_query, test_case)
                 rewritten_query = clarified_query
             
-            # 3. IR Builder
-            ir_start = time.time()
-            ir = self.ir_builder.build(rewritten_query)
-            component_timings['ir_builder'] = time.time() - ir_start
-            print(f"[DEBUG] IR Builder completed: {len(ir.aggregations) if ir.aggregations else 0} aggregations")
+            # 3. Use Workflow for IR building and SQL generation
+            workflow_start = time.time()
+            state = {
+                'question': test_case.question,
+                'q2q': rewritten_query.model_dump() if hasattr(rewritten_query, 'model_dump') else {},
+                'kb_entities': self._create_mock_kb_entities(test_case.expected_rag_entities) if test_case.expected_rag_entities else []
+            }
+            
+            # Run workflow steps
+            state = self.pipeline.q2q(state)
+            state = self.pipeline.retrieve(state)
+            state = self.pipeline.plan(state)
+            state = self.pipeline.build_ir(state)
+            
+            ir_obj = state.get('ir_obj')  # 获取SemanticQueryIR对象
+            ir = state.get('ir')  # 获取序列化版本用于调试
+            component_timings['workflow'] = time.time() - workflow_start
+            print(f"[DEBUG] Workflow completed: {len(ir_obj.aggregations) if ir_obj and ir_obj.aggregations else 0} aggregations")
             
             # 4. SQL Generator
             sql_gen_start = time.time()
-            # 强制使用统一的表名
-            generated_sql = self.sql_generator.generate(ir, "dws_user_activity")
+            generated_sql = self.sql_generator.generate(ir_obj, "dws_user_activity")
             component_timings['sql_generator'] = time.time() - sql_gen_start
             print(f"[DEBUG] SQL Generator completed: {generated_sql}")
             
@@ -209,11 +274,11 @@ class BatchTestEvaluator:
             total_time = time.time() - start_time
             
             # 评估结果
-            result = self._evaluate_result(test_case, rewritten_query, ir, generated_sql, actual_result)
+            result = self._evaluate_result(test_case, rewritten_query, ir_obj, generated_sql, actual_result)
             result.execution_time = total_time
             result.component_timings = component_timings
             result.rewritten_query = rewritten_query
-            result.ir = ir
+            result.ir = ir_obj
             result.success = True
             
             # 创建state对象用于RAG评估
@@ -497,7 +562,8 @@ class BatchTestEvaluator:
             return relevance_score.overall_score
             
         except Exception as e:
-            print(f"[ERROR] 增强相关性计算失败，回退到标准计算: {e}")
+            print(f"[ERROR] Enhanced relevance calculation failed: {e}")
+            print(f"[ERROR] Exception type: {type(e).__name__}")
             # 回退到标准计算
             rag_context = ""
             for fragment in rag_fragments:
@@ -540,7 +606,9 @@ class BatchTestEvaluator:
             }
             
         except Exception as e:
-            print(f"[ERROR] 增强RAG质量评估失败，回退到标准评估: {e}")
+            print(f"[ERROR] Enhanced RAG quality evaluation failed: {e}")
+            print(f"[ERROR] Exception type: {type(e).__name__}")
+            print(f"[ERROR] Exception details: {str(e)}")
             # 回退到标准评估
             return self._evaluate_stage2_semantic_fragments(test_case, rag_fragments)
     
@@ -599,26 +667,15 @@ class BatchTestEvaluator:
             abbreviations = re.findall(r'\b[A-Z]{2,4}\b', question)
             keywords.extend(abbreviations)
             
-            # 2. 中文指标名称（只匹配问题中实际出现的）
-            chinese_metrics = [
-                '月活跃用户', '日活跃用户', '独立访客', '浏览量', '用户数', '访问量',
-                '活跃用户', '用户活跃', '访客', '页面访问', '页面浏览量'
-            ]
-            for metric in chinese_metrics:
-                if metric in question:
-                    keywords.append(metric)
+            # 2. 使用METRIC_KEYWORDS进行匹配
+            for category, metric_list in METRIC_KEYWORDS.items():
+                for metric in metric_list:
+                    if metric.lower() in question_lower or metric in question:
+                        keywords.append(metric)
             
-            # 3. 英文全称（只匹配问题中实际出现的）
-            english_metrics = [
-                'monthly active users', 'daily active users', 'unique visitors', 'page views',
-                'active users', 'visitors', 'page visits'
-            ]
-            for metric in english_metrics:
-                if metric in question_lower:
-                    keywords.append(metric)
-            
-            # 4. 核心指标的小写形式（只匹配问题中实际出现的）
-            for metric_name in CORE_METRICS:
+            # 3. 核心指标的小写形式（只匹配问题中实际出现的）
+            core_metrics = ['mau', 'dau', 'uv', 'pv', 'retention_rate', 'conversion_rate', 'revenue', 'orders', 'new_users', 'churn_users', 'arpu', 'gmv', 'aov', 'roi', 'cac', 'clv', 'bounce_rate', 'session_duration', 'page_views_per_session', 'return_visitor_rate', 'cart_abandonment_rate', 'search_success_rate', 'recommendation_click_rate', 'customer_satisfaction', 'net_promoter_score', 'support_ticket_count', 'average_resolution_time', 'repeat_purchase_rate', 'inventory_turnover', 'refund_rate', 'email_open_rate', 'email_click_rate', 'app_crash_rate', 'api_response_time', 'search_conversion_rate', 'social_share_count', 'average_basket_size', 'user_engagement_score', 'content_virality_score']
+            for metric_name in core_metrics:
                 if metric_name.lower() in question_lower or metric_name.upper() in question:
                     keywords.append(metric_name)
                     keywords.append(metric_name.upper())
@@ -1277,9 +1334,9 @@ class BatchTestEvaluator:
         # Q2Q阶段RAG
         q2q_rag_results = [r for r in self.results if r.q2q_rag_recall_rate is not None]
         if q2q_rag_results:
-            avg_q2q_recall = sum(r.q2q_rag_recall_rate for r in q2q_rag_results) / len(q2q_rag_results)
-            avg_q2q_precision = sum(r.q2q_rag_precision_rate for r in q2q_rag_results) / len(q2q_rag_results)
-            avg_q2q_relevance = sum(r.q2q_rag_relevance_score for r in q2q_rag_results) / len(q2q_rag_results)
+            avg_q2q_recall = sum(r.q2q_rag_recall_rate or 0 for r in q2q_rag_results) / len(q2q_rag_results)
+            avg_q2q_precision = sum(r.q2q_rag_precision_rate or 0 for r in q2q_rag_results) / len(q2q_rag_results)
+            avg_q2q_relevance = sum(r.q2q_rag_relevance_score or 0 for r in q2q_rag_results) / len(q2q_rag_results)
             avg_q2q_entity_coverage = sum(r.q2q_rag_entity_coverage or 0 for r in q2q_rag_results) / len(q2q_rag_results)
             avg_q2q_concept_coverage = sum(r.q2q_rag_concept_coverage or 0 for r in q2q_rag_results) / len(q2q_rag_results)
             
@@ -1292,8 +1349,8 @@ class BatchTestEvaluator:
         # Retrieve阶段RAG
         retrieve_rag_results = [r for r in self.results if r.retrieve_rag_recall_rate is not None]
         if retrieve_rag_results:
-            avg_retrieve_recall = sum(r.retrieve_rag_recall_rate for r in retrieve_rag_results) / len(retrieve_rag_results)
-            avg_retrieve_precision = sum(r.retrieve_rag_precision_rate for r in retrieve_rag_results) / len(retrieve_rag_results)
+            avg_retrieve_recall = sum(r.retrieve_rag_recall_rate or 0 for r in retrieve_rag_results) / len(retrieve_rag_results)
+            avg_retrieve_precision = sum(r.retrieve_rag_precision_rate or 0 for r in retrieve_rag_results) / len(retrieve_rag_results)
             avg_retrieve_relevance = sum(r.retrieve_rag_relevance_score or 0 for r in retrieve_rag_results) / len(retrieve_rag_results)
             avg_retrieve_entity_coverage = sum(r.retrieve_rag_entity_coverage or 0 for r in retrieve_rag_results) / len(retrieve_rag_results)
             
@@ -1315,14 +1372,27 @@ class BatchTestEvaluator:
         
         print(f"{'='*60}")
     
+    def _needs_clarification(self, test_case: TestCase) -> bool:
+        """检查是否需要澄清（使用clarification_config）"""
+        return test_case.id in self.clarification_config
+    
     def _needs_time_clarification(self, rewritten_query, test_case: TestCase) -> bool:
         """检查是否需要时间澄清"""
         print(f"[DEBUG] Checking time clarification for {test_case.id}")
-        print(f"[DEBUG] Has time_clarification config: {test_case.time_clarification is not None}")
+        print(f"[DEBUG] Has clarification config: {test_case.id in self.clarification_config}")
         print(f"[DEBUG] Q2Q time_filter: {rewritten_query.time_filter}")
         print(f"[DEBUG] Expected time_filter: {test_case.expected_time_filter}")
         
-        # 如果测试用例没有配置时间澄清，则不需要
+        # 使用clarification_config检查
+        if test_case.id in self.clarification_config:
+            config = self.clarification_config[test_case.id]
+            if config.get('needs_clarification', False):
+                missing = config.get('missing', [])
+                if 'time' in missing:
+                    print(f"[DEBUG] Time clarification needed per config")
+                    return True
+        
+        # 回退到原有逻辑
         if not test_case.time_clarification:
             print(f"[DEBUG] No time clarification config, skipping")
             return False
@@ -1354,6 +1424,74 @@ class BatchTestEvaluator:
             
         print(f"[DEBUG] No time clarification needed")
         return False
+    
+    def _simulate_clarification_flow(self, test_case: TestCase) -> TestResult:
+        """模拟澄清流程"""
+        print(f"[DEBUG] Simulating clarification flow for {test_case.id}")
+        
+        # 获取澄清输入
+        clarification_input = self.clarification_config[test_case.id]['clarification_input']
+        
+        # 1. 初始Q2Q重写
+        rewrite_start = time.time()
+        initial_query = self.query_rewriter.rewrite(test_case.question)
+        component_timings = {'query_rewriter': time.time() - rewrite_start}
+        
+        # 2. 应用澄清输入
+        clarified_query = self._apply_clarification_input(initial_query, clarification_input)
+        
+        # 3. 使用workflow处理澄清后的查询
+        workflow_start = time.time()
+        state = {
+            'question': test_case.question,
+            'q2q': clarified_query.model_dump() if hasattr(clarified_query, 'model_dump') else {},
+            'kb_entities': self._create_mock_kb_entities(test_case.expected_rag_entities) if test_case.expected_rag_entities else [],
+            'clarified_inputs': clarification_input
+        }
+        
+        # Run workflow steps
+        state = self.pipeline.q2q(state)
+        state = self.pipeline.retrieve(state)
+        state = self.pipeline.plan(state)
+        state = self.pipeline.build_ir(state)
+        
+        ir_obj = state.get('ir_obj')  # 获取SemanticQueryIR对象
+        ir = state.get('ir')  # 获取序列化版本用于调试
+        component_timings['workflow'] = time.time() - workflow_start
+        
+        # 4. SQL生成和执行
+        sql_gen_start = time.time()
+        generated_sql = self.sql_generator.generate(ir_obj, "dws_user_activity")
+        component_timings['sql_generator'] = time.time() - sql_gen_start
+        
+        sql_exec_start = time.time()
+        actual_result = self.sql_executor.execute(generated_sql)
+        component_timings['sql_executor'] = time.time() - sql_exec_start
+        
+        # 5. 评估结果
+        result = self._evaluate_result(test_case, clarified_query, ir_obj, generated_sql, actual_result)
+        result.execution_time = sum(component_timings.values())
+        result.component_timings = component_timings
+        result.rewritten_query = clarified_query
+        result.ir = ir_obj
+        result.success = True
+        
+        return result
+    
+    def _apply_clarification_input(self, query, clarification_input: Dict[str, Any]):
+        """应用澄清输入到查询"""
+        # 创建查询的副本
+        clarified_query = query
+        
+        # 应用时间澄清
+        if 'time' in clarification_input and clarification_input['time']:
+            clarified_query.time_filter = clarification_input['time']
+        
+        # 应用指标澄清
+        if 'metric' in clarification_input and clarification_input['metric']:
+            clarified_query.metric = [clarification_input['metric']]
+        
+        return clarified_query
     
     def _simulate_time_clarification(self, rewritten_query, test_case: TestCase):
         """模拟时间澄清过程"""
@@ -1405,6 +1543,13 @@ def main():
     else:
         print(f"[ERROR] Test file {test_file} does not exist")
         return
+    
+    # 加载澄清配置文件（如果存在）
+    clarification_config_file = "test_clarification_config.json"
+    if Path(clarification_config_file).exists():
+        evaluator.load_clarification_config(clarification_config_file)
+    else:
+        print(f"[INFO] Clarification config file {clarification_config_file} not found, skipping")
     
     # 运行批量测试
     evaluator.run_batch_test()

@@ -1,8 +1,7 @@
 """
-LEGACY: Original SQL generator used by the pipeline.
+SQL生成器
 
-Bridged by the component `components.sql_generator.SQLGenerator_component`.
-Prefer using the component interface in new code.
+将SemanticQueryIR转换为SQL查询语句。
 """
 from __future__ import annotations
 

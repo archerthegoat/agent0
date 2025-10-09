@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from datainsight_agent.services.llm import QwenClient
 from datainsight_agent.config.settings import load_settings
 from datainsight_agent.services.core.kb_vector_index import KBVectorRetriever
+from datainsight_agent.services.core.enhanced_kb_vector_retriever import EnhancedKBVectorRetriever
 from datainsight_agent.services.prompts import Q2QSystemPrompts
 
 
@@ -60,11 +61,11 @@ class OptimizedQ2QRewriter:
         self._query_type_cache = {}
 
     def _get_kb_retriever(self):
-        """懒加载KB向量检索器"""
+        """懒加载增强KB向量检索器"""
         if not self._kb_retriever_initialized:
             try:
                 if not hasattr(OptimizedQ2QRewriter, '_shared_kb_retriever'):
-                    OptimizedQ2QRewriter._shared_kb_retriever = KBVectorRetriever("kb_vector_index")
+                    OptimizedQ2QRewriter._shared_kb_retriever = EnhancedKBVectorRetriever("kb_vector_index")
                 self._kb_retriever = OptimizedQ2QRewriter._shared_kb_retriever
             except Exception:
                 self._kb_retriever = None

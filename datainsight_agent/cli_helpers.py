@@ -62,14 +62,14 @@ def print_plan_ir_sql(final: Dict[str, Any], settings=None, validate: bool = Fal
 		print(attribution_report)
 		print("\n" + "="*50 + "\n")
 	# else:
-		# print(f"[DEBUG] 没有找到归因分析报告，final keys: {list(final.keys())}")
+		# 没有找到归因分析报告（调试信息已移除）
 		# # 检查是否有归因分析配置
 		# ir = final.get("ir", {})
 		# attribution_analysis = ir.get("attribution_analysis")
 		# if attribution_analysis:
-		# 	print(f"[DEBUG] 发现归因分析配置: {attribution_analysis}")
+		# 发现归因分析配置（调试信息已移除）
 		# else:
-		# 	print("[DEBUG] 没有归因分析配置")
+		# 没有归因分析配置（调试信息已移除）
 	
 	# 显示IR验证结果
 	ir_validation = final.get("ir_validation")

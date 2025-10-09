@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 
@@ -16,6 +17,9 @@ from datainsight_agent.services.core.intelligent_entity_type_inferencer import I
 from datainsight_agent.services.core.type_aware_retrieval_strategy import TypeAwareRetrievalStrategy
 from datainsight_agent.services.core.metadata_loader import MetadataLoader
 from datainsight_agent.clients.vector_store import EmbeddingModel
+
+# 设置日志记录器
+logger = logging.getLogger(__name__)
 
 
 class EnhancedKBVectorRetriever:
@@ -62,10 +66,10 @@ class EnhancedKBVectorRetriever:
                 self.relevance_calculator
             )
             
-            print("[INFO] 增强版KB向量检索器初始化成功")
+            logger.info("增强版KB向量检索器初始化成功")
             
         except Exception as e:
-            print(f"[ERROR] 加载向量检索器失败: {e}")
+            logger.error(f"加载向量检索器失败: {e}")
             self.vector_retriever = None
             self.retrieval_strategy = None
     
@@ -112,7 +116,7 @@ class EnhancedKBVectorRetriever:
             }
             
         except Exception as e:
-            print(f"[ERROR] 增强RAG检索失败: {e}")
+            logger.error(f"增强RAG检索失败: {e}")
             return self._fallback_search(query, top_k)
     
     def _build_enhanced_context(self, query: str, fragments: List[Dict], relevance_score, intent_analysis) -> str:
@@ -174,7 +178,7 @@ class EnhancedKBVectorRetriever:
             }
             
         except Exception as e:
-            print(f"[ERROR] 回退检索失败: {e}")
+            logger.error(f"回退检索失败: {e}")
             return {
                 'fragments': [],
                 'context': '检索完全失败',
@@ -217,7 +221,7 @@ class EnhancedKBVectorRetriever:
             }
             
         except Exception as e:
-            print(f"[ERROR] 获取统计信息失败: {e}")
+            logger.error(f"获取统计信息失败: {e}")
             return {}
     
     def update_configuration(self, config: Dict[str, Any]):
@@ -231,20 +235,20 @@ class EnhancedKBVectorRetriever:
             if 'retrieval_strategy' in config:
                 self.retrieval_strategy.update_strategy_config(config['retrieval_strategy'])
             
-            print(f"[INFO] 配置已更新: {config}")
+            logger.info(f"配置已更新: {config}")
             
         except Exception as e:
-            print(f"[ERROR] 更新配置失败: {e}")
+            logger.error(f"更新配置失败: {e}")
     
     def clear_all_caches(self):
         """清除所有缓存"""
         try:
             self.metadata_loader.clear_cache()
             self.pattern_generator.clear_cache()
-            print("[INFO] 所有缓存已清除")
+            logger.info("所有缓存已清除")
             
         except Exception as e:
-            print(f"[ERROR] 清除缓存失败: {e}")
+            logger.error(f"清除缓存失败: {e}")
     
     def validate_system(self) -> Dict[str, Any]:
         """验证系统状态"""
@@ -280,7 +284,7 @@ class EnhancedKBVectorRetriever:
             validation_results['overall_status'] = 'healthy' if all_working else 'degraded'
             
         except Exception as e:
-            print(f"[ERROR] 系统验证失败: {e}")
+            logger.error(f"系统验证失败: {e}")
             validation_results['overall_status'] = 'error'
         
         return validation_results

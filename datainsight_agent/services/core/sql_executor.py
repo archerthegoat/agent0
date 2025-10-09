@@ -1,8 +1,7 @@
 """
-LEGACY: Original SQL executor used by the pipeline.
+SQL执行器
 
-Bridged by the component `components.sql_generator.SQLExecutorComponent`.
-Prefer using the component interface in new code.
+执行SQL查询并返回结果。
 """
 from __future__ import annotations
 

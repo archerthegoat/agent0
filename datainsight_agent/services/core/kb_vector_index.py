@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import List, Dict, Any
 from dataclasses import dataclass
@@ -14,6 +15,9 @@ except Exception:
     MilvusVectorStore = None
 from datainsight_agent.services.registry.metric_registry import MetricRegistry
 from datainsight_agent.services.utils.auth import KnowledgeBaseAuth
+
+# 设置日志记录器
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -39,20 +43,20 @@ class KBVectorIndexBuilder:
         
     def build_index(self) -> int:
         """构建KB向量索引，返回索引的实体数量"""
-        print(f"[INFO] 开始构建KB向量索引...")
+        logger.info("开始构建KB向量索引...")
         
         # 1. 收集所有KB实体
         kb_items = self._collect_kb_entities()
-        print(f"[INFO] 收集到 {len(kb_items)} 个KB实体")
+        logger.info(f"收集到 {len(kb_items)} 个KB实体")
         
         if not kb_items:
-            print("[WARN] 没有找到KB实体，跳过索引构建")
+            logger.warning("没有找到KB实体，跳过索引构建")
             return 0
         
         # 2. 生成向量表示
         texts = [item.text_content for item in kb_items]
         vectors = self._embedder.embed(texts)
-        print(f"[INFO] 生成 {len(vectors)} 个向量表示")
+        logger.info(f"生成 {len(vectors)} 个向量表示")
         
         # 3. 构建向量索引 - 强制使用 Milvus
         self._index_dir.mkdir(parents=True, exist_ok=True)
@@ -69,7 +73,7 @@ class KBVectorIndexBuilder:
         metadatas = [self._item_to_metadata(item) for item in kb_items]
         
         self._vector_store.add(ids=ids, vectors=vectors, metadatas=metadatas)
-        print(f"[INFO] KB向量索引构建完成，存储到 {self._index_dir}")
+        logger.info(f"KB向量索引构建完成，存储到 {self._index_dir}")
         
         return len(kb_items)
     
@@ -149,10 +153,10 @@ class KBVectorIndexBuilder:
                         )
                         items.append(item)
                 except Exception as e:
-                    print(f"[WARN] 跳过无效的维度实体: {e}")
+                    logger.warning(f"跳过无效的维度实体: {e}")
                     continue
         except Exception as e:
-            print(f"[ERROR] 收集维度实体失败: {e}")
+            logger.error(f"收集维度实体失败: {e}")
         
         return items
     
@@ -194,10 +198,10 @@ class KBVectorIndexBuilder:
                         )
                         items.append(item)
                 except Exception as e:
-                    print(f"[WARN] 跳过无效的指标实体: {e}")
+                    logger.warning(f"跳过无效的指标实体: {e}")
                     continue
         except Exception as e:
-            print(f"[ERROR] 收集指标实体失败: {e}")
+            logger.error(f"收集指标实体失败: {e}")
         
         return items
     
@@ -238,7 +242,7 @@ class KBVectorIndexBuilder:
                     )
                     items.append(item)
         except Exception as e:
-            print(f"[ERROR] 收集映射实体失败: {e}")
+            logger.error(f"收集映射实体失败: {e}")
         
         return items
     
@@ -268,7 +272,7 @@ class KBVectorRetriever:
         """加载向量索引"""
         try:
             if not self._index_dir.exists():
-                print(f"[WARN] KB向量索引不存在: {self._index_dir}")
+                logger.warning(f"KB向量索引不存在: {self._index_dir}")
                 return
             
             # 优化：缓存向量维度，避免重复计算
@@ -281,9 +285,9 @@ class KBVectorRetriever:
             if getattr(s, "milvus_enabled", False) and MilvusVectorStore is not None:
                 try:
                     self._vector_store = MilvusVectorStore(dim=self._cached_dim, space=str(getattr(s, "vector_space", "ip")))
-                    print(f"[INFO] KB向量索引加载成功 (Milvus): {self._index_dir}")
+                    logger.info(f"KB向量索引加载成功 (Milvus): {self._index_dir}")
                 except Exception as milvus_error:
-                    print(f"[WARN] Milvus向量存储加载失败: {milvus_error}")
+                    logger.warning(f"Milvus向量存储加载失败: {milvus_error}")
                     # 回退到本地HNSW
                     try:
                         from datainsight_agent.clients.vector_store import LocalHNSWVectorStore
@@ -292,9 +296,9 @@ class KBVectorRetriever:
                             dim=self._cached_dim, 
                             space=str(getattr(s, "vector_space", "ip"))
                         )
-                        print(f"[INFO] KB向量索引加载成功 (LocalHNSW): {self._index_dir}")
+                        logger.info(f"KB向量索引加载成功 (LocalHNSW): {self._index_dir}")
                     except Exception as local_error:
-                        print(f"[ERROR] 本地向量存储加载失败: {local_error}")
+                        logger.error(f"本地向量存储加载失败: {local_error}")
                         raise RuntimeError("Both Milvus and LocalHNSW vector stores failed to load")
             else:
                 # 如果Milvus未启用，使用本地HNSW
@@ -307,15 +311,15 @@ class KBVectorRetriever:
                     )
                     print(f"[INFO] KB向量索引加载成功 (LocalHNSW): {self._index_dir}")
                 except Exception as local_error:
-                    print(f"[WARN] 本地向量存储加载失败: {local_error}")
+                    logger.warning(f"本地向量存储加载失败: {local_error}")
                     # 回退到Milvus（如果可用）
                     if MilvusVectorStore is None:
                         raise RuntimeError("MilvusVectorStore not available. Please install pymilvus and ensure MILVUS_ENABLED=true")
                     
                     self._vector_store = MilvusVectorStore(dim=self._cached_dim, space=str(getattr(s, "vector_space", "ip")))
-                    print(f"[INFO] KB向量索引加载成功 (Milvus): {self._index_dir}")
+                    logger.info(f"KB向量索引加载成功 (Milvus): {self._index_dir}")
         except Exception as e:
-            print(f"[ERROR] 加载KB向量索引失败: {e}")
+            logger.error(f"加载KB向量索引失败: {e}")
     
     def search_topics_and_metrics(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """第一阶段：用向量索引找到相关的指标或topic（精确匹配 + 标准化alias）"""
@@ -331,7 +335,7 @@ class KBVectorRetriever:
             exact_matches = self._exact_metric_match(query)
             
             # 2. 无论精确匹配是否成功，都进行向量搜索以增加类型多样性
-            print(f"[INFO] 精确匹配找到 {len(exact_matches)} 个指标，继续向量搜索增加类型多样性")
+            logger.info(f"精确匹配找到 {len(exact_matches)} 个指标，继续向量搜索增加类型多样性")
             
             # 生成查询向量
             query_vector = self._embedder.embed([query])[0]
@@ -398,7 +402,7 @@ class KBVectorRetriever:
                 selected_types.add('dimension')
             else:
                 # 如果没有找到维度，尝试降低阈值强制检索
-                print(f"[DEBUG] 未找到维度实体，尝试降低阈值强制检索")
+                logger.debug(f"未找到维度实体，尝试降低阈值强制检索")
                 fallback_threshold = max(0.35, min_similarity_threshold - 0.10)  # 动态回退阈值
                 for entity_id, score in results:
                     if float(score) >= fallback_threshold:
@@ -412,7 +416,7 @@ class KBVectorRetriever:
                             }
                             topics_and_metrics.append(fragment)
                             selected_types.add('dimension')
-                            print(f"[DEBUG] 强制添加维度实体: {entity_id}, 分数: {score}")
+                            logger.debug(f"强制添加维度实体: {entity_id}, 分数: {score}")
                             break
             
             # 强制选择映射类型（如果存在）
@@ -422,7 +426,7 @@ class KBVectorRetriever:
                 selected_types.add('mapping')
             else:
                 # 如果没有找到映射，尝试降低阈值强制检索
-                print(f"[DEBUG] 未找到映射实体，尝试降低阈值强制检索")
+                logger.debug(f"未找到映射实体，尝试降低阈值强制检索")
                 fallback_threshold = max(0.35, min_similarity_threshold - 0.10)  # 动态回退阈值
                 for entity_id, score in results:
                     if float(score) >= fallback_threshold:
@@ -436,7 +440,7 @@ class KBVectorRetriever:
                             }
                             topics_and_metrics.append(fragment)
                             selected_types.add('mapping')
-                            print(f"[DEBUG] 强制添加映射实体: {entity_id}, 分数: {score}")
+                            logger.debug(f"强制添加映射实体: {entity_id}, 分数: {score}")
                             break
             
             # 强制选择概念类型（如果存在）
@@ -445,9 +449,9 @@ class KBVectorRetriever:
                 topics_and_metrics.extend(type_groups['concept'][:1])
                 selected_types.add('concept')
             
-            print(f"[DEBUG] 强制类型多样性 - 已选择类型: {selected_types}")
-            print(f"[DEBUG] 强制类型多样性 - 总结果数: {len(topics_and_metrics)}")
-            print(f"[DEBUG] 各类型组数量 - metric: {len(type_groups.get('metric', []))}, dimension: {len(type_groups.get('dimension', []))}, mapping: {len(type_groups.get('mapping', []))}, concept: {len(type_groups.get('concept', []))}")
+            logger.debug(f"强制类型多样性 - 已选择类型: {selected_types}")
+            logger.debug(f"强制类型多样性 - 总结果数: {len(topics_and_metrics)}")
+            logger.debug(f"各类型组数量 - metric: {len(type_groups.get('metric', []))}, dimension: {len(type_groups.get('dimension', []))}, mapping: {len(type_groups.get('mapping', []))}, concept: {len(type_groups.get('concept', []))}")
             
             # 如果结果不足，补充其他类型的结果
             if len(topics_and_metrics) < top_k:
@@ -463,7 +467,7 @@ class KBVectorRetriever:
             
             # 3. 回退机制：如果向量搜索结果不足，使用关键词匹配
             if len(topics_and_metrics) < 2:
-                print(f"[INFO] 向量搜索结果不足({len(topics_and_metrics)}个)，启用关键词回退机制")
+                logger.info(f"向量搜索结果不足({len(topics_and_metrics)}个)，启用关键词回退机制")
                 keyword_results = self._keyword_fallback_search(query)
                 for result in keyword_results:
                     if not any(f.get('entity_id') == result.get('entity_id') for f in topics_and_metrics):
@@ -473,14 +477,14 @@ class KBVectorRetriever:
             
             # 最终按分数排序
             topics_and_metrics.sort(key=lambda x: x['score'], reverse=True)
-            print(f"[INFO] 最终检索到 {len(topics_and_metrics)} 个实体")
+            logger.info(f"最终检索到 {len(topics_and_metrics)} 个实体")
             return topics_and_metrics[:top_k]
         except Exception as e:
             # 避免编码问题，使用安全的错误处理
             try:
-                print(f"[ERROR] 第一阶段向量检索失败: {str(e)}")
+                logger.error(f"第一阶段向量检索失败: {str(e)}")
             except UnicodeError:
-                print(f"[ERROR] 第一阶段向量检索失败: encoding error")
+                logger.error(f"第一阶段向量检索失败: encoding error")
             return []
     
     def _keyword_fallback_search(self, query: str) -> List[Dict[str, Any]]:
@@ -573,11 +577,11 @@ class KBVectorRetriever:
                         })
                         break
             
-            print(f"[INFO] 关键词回退搜索找到 {len(fallback_results)} 个结果")
+            logger.info(f"关键词回退搜索找到 {len(fallback_results)} 个结果")
             return fallback_results
             
         except Exception as e:
-            print(f"[ERROR] 关键词回退搜索失败: {e}")
+            logger.error(f"关键词回退搜索失败: {e}")
             return []
     
     def _exact_metric_match(self, query: str) -> List[Dict[str, Any]]:
@@ -613,9 +617,9 @@ class KBVectorRetriever:
         except Exception as e:
             # 避免编码问题，使用安全的错误处理
             try:
-                print(f"[ERROR] 精确匹配失败: {str(e)}")
+                logger.error(f"精确匹配失败: {str(e)}")
             except UnicodeError:
-                print(f"[ERROR] 精确匹配失败: encoding error")
+                logger.error(f"精确匹配失败: encoding error")
             return []
     
     def _extract_metric_keywords(self, query: str) -> List[str]:
@@ -696,11 +700,11 @@ class KBVectorRetriever:
             
             # 5. 去重并返回
             unique_keywords = list(set(keywords))
-            print(f"[DEBUG] 提取的关键词: {unique_keywords}")
+            logger.debug(f"提取的关键词: {unique_keywords}")
             return unique_keywords
             
         except Exception as e:
-            print(f"[ERROR] 关键词提取失败: {e}")
+            logger.error(f"关键词提取失败: {e}")
             return []
     
     def _standardize_metric_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
@@ -742,9 +746,9 @@ class KBVectorRetriever:
         except Exception as e:
             # 避免编码问题，使用安全的错误处理
             try:
-                print(f"[ERROR] 标准化指标元数据失败: {str(e)}")
+                logger.error(f"标准化指标元数据失败: {str(e)}")
             except UnicodeError:
-                print(f"[ERROR] 标准化指标元数据失败: encoding error")
+                logger.error(f"标准化指标元数据失败: encoding error")
             return metadata
     
     def _get_entity_metadata(self, entity_id: str) -> Dict[str, Any] | None:
@@ -838,9 +842,9 @@ class KBVectorRetriever:
         except Exception as e:
             # 避免编码问题，使用安全的错误处理
             try:
-                print(f"[ERROR] 获取实体元数据失败: {str(e)}")
+                logger.error(f"获取实体元数据失败: {str(e)}")
             except UnicodeError:
-                print(f"[ERROR] 获取实体元数据失败: encoding error")
+                logger.error(f"获取实体元数据失败: encoding error")
             return {
                 "entity_id": entity_id,
                 "entity_type": "unknown"
@@ -920,7 +924,7 @@ class KBVectorRetriever:
             if metrics_file.exists():
                 return json.loads(metrics_file.read_text(encoding="utf-8"))
         except Exception as e:
-            print(f"[ERROR] 加载指标定义失败: {e}")
+            logger.error(f"加载指标定义失败: {e}")
         return []
     
     def _find_dimension_by_column(self, column: str) -> str:
@@ -935,7 +939,7 @@ class KBVectorRetriever:
                     if data_source.get("column") == column:
                         return f"dim_{item.get('canonical_name', '')}"
         except Exception as e:
-            print(f"[ERROR] 查找维度失败: {e}")
+            logger.error(f"查找维度失败: {e}")
         return ""
     
     def _is_metric_dimension_related(self, metric: Dict[str, Any], dimension_id: str) -> bool:
@@ -959,15 +963,15 @@ class KBVectorRetriever:
         topics_and_metrics = self.search_topics_and_metrics(query, top_k=3)
         
         if not topics_and_metrics:
-            print(f"[INFO] 第一阶段没有找到相关指标/topic")
+            logger.info(f"第一阶段没有找到相关指标/topic")
             return []
         
-        print(f"[INFO] 第一阶段找到 {len(topics_and_metrics)} 个相关指标/topic")
+        logger.info(f"第一阶段找到 {len(topics_and_metrics)} 个相关指标/topic")
         
         # 第二阶段：图结构关系查找
         related_entities = self.find_related_entities(topics_and_metrics)
         
-        print(f"[INFO] 第二阶段找到 {len(related_entities)} 个相关实体")
+        logger.info(f"第二阶段找到 {len(related_entities)} 个相关实体")
         
         # 第三阶段：基于关系的精准召回（优化权重）
         final_results = []
@@ -1016,7 +1020,7 @@ class KBVectorRetriever:
         # 按分数排序（指标优先）
         unique_results.sort(key=lambda x: (x['score'], x.get('entity_type', '') == 'metric'), reverse=True)
         
-        print(f"[INFO] 第三阶段最终召回 {len(unique_results)} 个实体")
+        logger.info(f"第三阶段最终召回 {len(unique_results)} 个实体")
         
         # 确保指标实体优先返回
         metric_results = [r for r in unique_results if r.get('entity_type') == 'metric']

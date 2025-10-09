@@ -1,7 +1,7 @@
 """
-LEGACY: Original metric parser used by the pipeline.
+指标解析器
 
-Direct implementation of metric parsing logic.
+解析自然语言查询中的指标信息。
 """
 
 from typing import Dict, Any, List, Optional
