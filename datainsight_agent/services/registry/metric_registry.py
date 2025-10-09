@@ -24,6 +24,7 @@ class MetricDef:
         self.table_mapping = table_mapping or {}
 
     def all_names_lower(self) -> List[str]:
+        """返回所有指标名称的小写形式"""
         names = [self.canonical_name.lower()] + [a.lower() for a in self.aliases]
         # 添加聚合别名
         agg_alias = self.aggregation.get('alias', '')
