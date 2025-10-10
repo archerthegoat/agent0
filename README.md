@@ -7,7 +7,10 @@ DataInsight Agent is an enterprise-grade, natural-language-driven data agent. It
 
 ## Features
 - Text-to-IR-to-SQL pipeline with safety-first generation (no direct LLM SQL fallback)
-- **Enhanced RAG System**: Adaptive relevance calculation, dynamic pattern generation, intelligent entity type inference
+- **Enhanced RAG System**: Adaptive relevance calculation, dynamic pattern generation, intelligent entity type inference, type-aware retrieval strategy
+- **Performance Optimization**: Component caching, fast mode for testing, debug mode control
+- **Comprehensive Evaluation**: Multi-stage RAG assessment (Q2Q + Retrieve), batch testing framework with 87.5% metric identification accuracy
+- **Dynamic Time Component**: Real-time date handling, no hardcoded time values
 - Hybrid Knowledge Base: Milvus vectors + SQLite graph
 - LlamaIndex-based orchestration with extensible components
 - Structured logging with file and console outputs
@@ -15,11 +18,15 @@ DataInsight Agent is an enterprise-grade, natural-language-driven data agent. It
 - Typer CLI for running agent, ETL, health checks, query rewrite inspection, and synthetic seeding
 
 ## Tech Stack
-- Orchestration: LlamaIndex (default)
-- Knowledge: Milvus (HNSW) + SQLite (local graph)
-- Models: Pydantic v2 with type hints
-- Logging: structlog + stdlib logging
-- CLI: Typer
+- **Orchestration**: LlamaIndex Workflow (q2q→retrieve→plan→build_ir→execute)
+- **LLM**: Qwen 2.5-72B-Instruct (OpenAI-compatible API)
+- **Knowledge**: Milvus (HNSW) + SQLite (local graph)
+- **Enhanced RAG**: Adaptive relevance calculation, dynamic pattern generation, intelligent entity type inference
+- **Evaluation**: Comprehensive batch testing framework with multi-stage RAG assessment
+- **Performance**: Component caching, fast mode optimization, debug mode control
+- **Models**: Pydantic v2 with type hints
+- **Logging**: structlog + stdlib logging
+- **CLI**: Typer
 
 ## Quick Start
 1) Create and fill your `.env` (see variables below):
